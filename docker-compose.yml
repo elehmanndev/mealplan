@@ -1,0 +1,14 @@
+services:
+  mealplan:
+    build: .
+    image: mealplan:latest
+    container_name: mealplan
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - /mnt/user/appdata/mealplan/data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/mealplan.db
+      - TZ=Europe/Madrid
