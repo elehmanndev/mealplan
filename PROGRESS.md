@@ -121,4 +121,4 @@ mealplan/
 12. ✅ WeekActionsMenu — duplicar semana anterior + limpiar semana
 13. ✅ PWA — manifest, sw.js (network-first /shopping*, cache-first /_next/static; offline mutation queue is a documented future)
 14. ✅ Dockerfile + docker-compose + smoke test local
-15. ⏳ Deploy Unraid + NPM + Cloudflare Access — Eric does this
+15. ✅ Deploy Unraid — container `mealplan` running on `192.168.1.45:3004` (host-port 3004 because mcphub holds 3001). NPM proxy + Cloudflare Access still pending Eric's side.
