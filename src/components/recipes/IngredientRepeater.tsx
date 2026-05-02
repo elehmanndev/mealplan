@@ -1,0 +1,203 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+import type { RecipeIngredientInput } from '@/schemas';
+import type { Ingredient, Unit } from '@/types';
+import { UNITS } from '@/types';
+import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
+import { Button } from '@/components/ui/Button';
+
+interface IngredientRepeaterProps {
+  value: RecipeIngredientInput[];
+  onChange: (next: RecipeIngredientInput[]) => void;
+}
+
+const inputCls = 'bg-surface-2 rounded-xl px-3 h-11 text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent';
+
+export function IngredientRepeater({ value, onChange }: IngredientRepeaterProps) {
+  const update = (i: number, patch: Partial<RecipeIngredientInput>) => {
+    const next = value.slice();
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+
+  const remove = (i: number) => {
+    const next = value.slice();
+    next.splice(i, 1);
+    onChange(next);
+  };
+
+  const add = () => {
+    onChange([
+      ...value,
+      { name: '', quantity: 1, unit: 'g', shopping_category: 'otros' },
+    ]);
+  };
+
+  return (
+    <div className="space-y-3">
+      {value.map((row, i) => (
+        <IngredientRow
+          key={i}
+          row={row}
+          onPatch={(p) => update(i, p)}
+          onRemove={() => remove(i)}
+        />
+      ))}
+      <button
+        type="button"
+        onClick={add}
+        className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-surface-2 text-text-muted hover:text-text active:scale-[0.99] transition-transform"
+      >
+        <Plus size={18} />
+        Añadir ingrediente
+      </button>
+    </div>
+  );
+}
+
+interface IngredientRowProps {
+  row: RecipeIngredientInput;
+  onPatch: (patch: Partial<RecipeIngredientInput>) => void;
+  onRemove: () => void;
+}
+
+function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
+  const [suggestions, setSuggestions] = useState<Ingredient[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [matchedExisting, setMatchedExisting] = useState<boolean>(!!row.ingredient_id);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = row.name.trim();
+    if (!q) {
+      setSuggestions([]);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/ingredients/search?q=${encodeURIComponent(q)}&limit=10`);
+        if (!res.ok) return;
+        const data = (await res.json()) as Ingredient[];
+        setSuggestions(data);
+        const exact = data.find((i) => i.name.toLowerCase() === q.toLowerCase());
+        setMatchedExisting(!!exact);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [row.name]);
+
+  const handlePickSuggestion = (ing: Ingredient) => {
+    onPatch({
+      ingredient_id: ing.id,
+      name: ing.name,
+      unit: ing.default_unit,
+      shopping_category: ing.shopping_category as RecipeIngredientInput['shopping_category'],
+    });
+    setShowSuggestions(false);
+    setMatchedExisting(true);
+  };
+
+  const handleNameChange = (name: string) => {
+    onPatch({ name, ingredient_id: undefined });
+  };
+
+  const handleQuantityChange = (raw: string) => {
+    const normalized = raw.replace(',', '.');
+    const parsed = parseFloat(normalized);
+    onPatch({ quantity: Number.isFinite(parsed) ? parsed : 0 });
+  };
+
+  const showCategorySelect = !matchedExisting && row.name.trim().length > 0;
+
+  return (
+    <div className="bg-surface rounded-2xl p-3 space-y-2">
+      <div className="relative">
+        <input
+          type="text"
+          value={row.name}
+          onChange={(e) => handleNameChange(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => {
+            blurTimerRef.current = setTimeout(() => setShowSuggestions(false), 150);
+          }}
+          placeholder="Nombre del ingrediente"
+          className={`${inputCls} w-full`}
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <ul className="absolute z-10 left-0 right-0 mt-1 bg-surface-2 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+            {suggestions.map((ing) => (
+              <li key={ing.id}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+                    handlePickSuggestion(ing);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-surface min-h-touch"
+                >
+                  <span className="font-medium">{ing.name}</span>
+                  <span className="text-xs text-text-muted ml-2">
+                    {ing.default_unit} · {ing.shopping_category}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="flex gap-2 items-center">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={String(row.quantity)}
+          onChange={(e) => handleQuantityChange(e.target.value)}
+          placeholder="Cant."
+          className={`${inputCls} w-24`}
+        />
+        <select
+          value={row.unit}
+          onChange={(e) => onPatch({ unit: e.target.value as Unit })}
+          className={`${inputCls} flex-1`}
+        >
+          {UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Eliminar ingrediente"
+          className="min-w-touch min-h-touch flex items-center justify-center rounded-full text-text-muted hover:text-red-400 active:scale-95 transition-transform"
+        >
+          <Trash2 size={20} />
+        </button>
+      </div>
+      {showCategorySelect && (
+        <select
+          value={row.shopping_category ?? 'otros'}
+          onChange={(e) =>
+            onPatch({ shopping_category: e.target.value as RecipeIngredientInput['shopping_category'] })
+          }
+          className={`${inputCls} w-full`}
+        >
+          {SHOPPING_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
