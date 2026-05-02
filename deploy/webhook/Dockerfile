@@ -9,6 +9,7 @@ FROM almir/webhook:latest
 USER root
 RUN apk add --no-cache \
         git \
+        openssh-client \
         docker-cli \
         docker-cli-compose \
         curl \

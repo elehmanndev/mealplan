@@ -20,13 +20,16 @@ services:
     environment:
       - TZ=Europe/Madrid
     volumes:
-      # Hooks config is on the host (contains the HMAC secret, NOT in git).
+      # Hooks config + deploy script live on the host at /mnt/user/appdata/mealplan-webhook/
+      # (NOT in git — hooks.yaml has the HMAC secret). Updates to deploy.sh after
+      # the bootstrap are a `cp deploy/webhook/deploy.sh /mnt/user/appdata/mealplan-webhook/`
+      # away.
       - /mnt/user/appdata/mealplan-webhook/hooks.yaml:/etc/webhook/hooks.yaml:ro
-      # Deploy script is symlinked from this same repo path so updates flow
-      # through `git pull` automatically. Docker resolves the symlink at
-      # mount time.
       - /mnt/user/appdata/mealplan-webhook/deploy.sh:/usr/local/bin/deploy.sh:ro
       # The webhook needs to git-fetch + docker-compose-build the app, so it
       # gets the app's working tree and the docker socket.
       - /mnt/user/appdata/mealplan:/mnt/user/appdata/mealplan
       - /var/run/docker.sock:/var/run/docker.sock
+      # Deploy key + ssh config + known_hosts so `git fetch` over the SSH remote
+      # works inside the container. Read-only.
+      - /root/.ssh:/root/.ssh:ro
