@@ -5,7 +5,7 @@ services:
     container_name: mealplan
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3004:3000"
     volumes:
       - /mnt/user/appdata/mealplan/data:/app/data
     environment:
