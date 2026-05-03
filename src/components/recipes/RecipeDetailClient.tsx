@@ -15,7 +15,7 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
   return (
     <>
       <ServingsView recipe={recipe} servings={servings} setServings={setServings} />
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-bg/95 backdrop-blur-sm border-t border-neutral-800 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+72px)]">
+      <div className="fixed bottom-0 inset-x-0 z-20 glass-bottom px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+72px)]">
         <AddToPlanButton recipeId={recipe.id} servings={servings} />
       </div>
     </>

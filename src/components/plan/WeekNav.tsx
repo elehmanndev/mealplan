@@ -1,13 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, MoreVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, MoreVertical } from 'lucide-react';
 import { formatWeekLabel, getCurrentWeek, getNextWeek, getPrevWeek } from '@/lib/week';
 
 interface WeekNavProps {
   week: string;
   onOpenActions: () => void;
 }
+
+const iconBtn =
+  'w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-2 text-text shrink-0';
 
 export function WeekNav({ week, onOpenActions }: WeekNavProps) {
   const prev = getPrevWeek(week);
@@ -16,40 +19,43 @@ export function WeekNav({ week, onOpenActions }: WeekNavProps) {
   const isCurrent = week === current;
 
   return (
-    <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur supports-[backdrop-filter]:bg-bg/80 border-b border-neutral-800 safe-top">
-      <div className="flex items-center justify-between px-2 py-2 gap-2">
+    <header className="sticky top-0 z-20 glass-top safe-top">
+      <div className="grid grid-cols-[auto_1fr_auto] items-center px-4 py-3">
         <Link
-          href={`/?week=${prev}`}
-          aria-label="Semana anterior"
-          className="min-w-touch min-h-touch flex items-center justify-center rounded-full hover:bg-surface-2 text-text"
+          href="/home"
+          aria-label="Inicio"
+          className={`${iconBtn} text-text-muted`}
         >
-          <ChevronLeft size={24} />
+          <Home size={22} />
         </Link>
-        <div className="flex-1 flex items-center justify-center gap-3">
-          <span className="font-semibold text-base">{formatWeekLabel(week)}</span>
-          {isCurrent ? (
-            <span className="text-xs text-text-muted">Hoy</span>
-          ) : (
-            <Link
-              href={`/?week=${current}`}
-              className="text-xs text-accent font-medium px-2 py-1 rounded-full bg-accent/10 active:scale-95 transition-transform"
-            >
-              Hoy
-            </Link>
-          )}
+
+        <div className="flex items-center justify-center gap-1">
+          <Link href={`/?week=${prev}`} aria-label="Semana anterior" className={iconBtn}>
+            <ChevronLeft size={22} />
+          </Link>
+          <div className="flex items-center gap-2 min-w-[100px] justify-center">
+            <span className="font-semibold text-base tabular-nums">{formatWeekLabel(week)}</span>
+            {isCurrent ? (
+              <span className="text-xs text-text-muted">Hoy</span>
+            ) : (
+              <Link
+                href={`/?week=${current}`}
+                className="text-xs text-accent font-medium px-2 py-0.5 rounded-full bg-accent/10 active:scale-95 transition-transform"
+              >
+                Hoy
+              </Link>
+            )}
+          </div>
+          <Link href={`/?week=${next}`} aria-label="Semana siguiente" className={iconBtn}>
+            <ChevronRight size={22} />
+          </Link>
         </div>
-        <Link
-          href={`/?week=${next}`}
-          aria-label="Semana siguiente"
-          className="min-w-touch min-h-touch flex items-center justify-center rounded-full hover:bg-surface-2 text-text"
-        >
-          <ChevronRight size={24} />
-        </Link>
+
         <button
           type="button"
           onClick={onOpenActions}
           aria-label="Acciones de semana"
-          className="min-w-touch min-h-touch flex items-center justify-center rounded-full hover:bg-surface-2 text-text"
+          className={iconBtn}
         >
           <MoreVertical size={22} />
         </button>

@@ -35,7 +35,7 @@ export function BottomNav({ currentWeek }: { currentWeek?: string }) {
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-neutral-800 safe-bottom">
+    <nav className="fixed bottom-0 inset-x-0 z-30 glass-bottom safe-bottom">
       <ul className="flex">
         {items.map((item) => {
           const active = item.match(pathname);
@@ -45,12 +45,14 @@ export function BottomNav({ currentWeek }: { currentWeek?: string }) {
               <Link
                 href={item.href}
                 className={[
-                  'flex flex-col items-center justify-center min-h-touch py-2 gap-0.5',
+                  'flex flex-col items-center justify-center min-h-touch py-3 gap-1',
                   active ? 'text-accent' : 'text-text-muted',
                 ].join(' ')}
               >
-                <Icon size={22} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="w-6 h-6 flex items-center justify-center">
+                  <Icon size={22} strokeWidth={2} />
+                </span>
+                <span className="text-xs font-medium leading-none">{item.label}</span>
               </Link>
             </li>
           );
