@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { RecipeWithIngredients } from '@/types';
-import { RECIPE_CATEGORIES, type RecipeCategory } from '@/types';
+import { RECIPE_TAGS } from '@/types';
 import type { RecipeIngredientInput } from '@/schemas';
 import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
@@ -25,13 +25,9 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState(initial?.name ?? '');
-  const [description, setDescription] = useState(initial?.description ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🍽️');
   const [baseServings, setBaseServings] = useState(initial?.base_servings ?? 2);
-  const [category, setCategory] = useState<RecipeCategory | ''>(initial?.category ?? '');
-  const [prepTimeMin, setPrepTimeMin] = useState<string>(
-    initial?.prep_time_min != null ? String(initial.prep_time_min) : '',
-  );
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [isFavorite, setIsFavorite] = useState(initial?.is_favorite ?? false);
   const [ingredients, setIngredients] = useState<RecipeIngredientInput[]>(
@@ -41,8 +37,12 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
       quantity: ing.quantity,
       unit: ing.unit,
       shopping_category: ing.shopping_category as RecipeIngredientInput['shopping_category'],
+      supermarket: ing.supermarket ?? null,
     })) ?? [],
   );
+
+  const toggleTag = (tag: string) =>
+    setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
 
   const handleSubmit = () => {
     setError(null);
@@ -53,17 +53,17 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
     const cleanIngredients = ingredients.filter(
       (i) => i.name.trim().length > 0 && i.quantity > 0,
     );
-    const prepNum = prepTimeMin.trim() === '' ? null : Number(prepTimeMin);
     const payload = {
       name: name.trim(),
-      description: description.trim() ? description.trim() : null,
+      description: null,
       emoji: emoji.trim() || '🍽️',
       base_servings: baseServings,
-      category: category === '' ? null : category,
-      prep_time_min: prepNum,
+      category: null,
+      prep_time_min: null,
       notes: notes.trim() ? notes.trim() : null,
       is_favorite: isFavorite,
       ingredients: cleanIngredients,
+      tags,
     };
 
     startTransition(async () => {
@@ -101,60 +101,43 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
         />
       </label>
 
-      <div className="grid grid-cols-[80px_1fr] gap-3">
-        <label className="block">
-          <span className="text-sm text-text-muted">Emoji</span>
-          <input
-            type="text"
-            value={emoji}
-            onChange={(e) => setEmoji(e.target.value)}
-            className={`${inputCls} mt-1 text-center text-2xl`}
-            maxLength={8}
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm text-text-muted">Categoría</span>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as RecipeCategory | '')}
-            className={`${inputCls} mt-1`}
-          >
-            <option value="">Sin categoría</option>
-            {RECIPE_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
+      <label className="block">
+        <span className="text-sm text-text-muted">Emoji</span>
+        <input
+          type="text"
+          value={emoji}
+          onChange={(e) => setEmoji(e.target.value)}
+          className={`${inputCls} mt-1 text-center text-2xl`}
+          maxLength={8}
+        />
+      </label>
+
+      <div>
+        <span className="text-sm text-text-muted">Tags</span>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {RECIPE_TAGS.map((tag) => {
+            const selected = tags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => toggleTag(tag)}
+                className={[
+                  'px-3 h-9 rounded-full text-sm font-medium transition-all active:scale-95',
+                  selected ? 'bg-accent text-white' : 'bg-surface-2 text-text-muted',
+                ].join(' ')}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="bg-surface rounded-2xl p-4 flex items-center justify-between">
         <span className="text-sm text-text-muted">Comensales base</span>
         <Stepper value={baseServings} onChange={setBaseServings} min={1} max={20} />
       </div>
-
-      <label className="block">
-        <span className="text-sm text-text-muted">Tiempo de preparación (min)</span>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={prepTimeMin}
-          onChange={(e) => setPrepTimeMin(e.target.value.replace(/[^0-9]/g, ''))}
-          placeholder="20"
-          className={`${inputCls} mt-1`}
-        />
-      </label>
-
-      <label className="block">
-        <span className="text-sm text-text-muted">Descripción</span>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Receta clásica..."
-          className="bg-surface-2 rounded-xl px-4 py-3 w-full text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent mt-1 min-h-24"
-        />
-      </label>
 
       <label className="flex items-center justify-between bg-surface rounded-2xl px-4 h-14 cursor-pointer">
         <span className="font-medium">⭐ Favorita</span>

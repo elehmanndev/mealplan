@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { getRecipe } from '@/models/recipe';
+import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { FavoriteToggle } from '@/components/recipes/FavoriteToggle';
 import { RecipeMenu } from '@/components/recipes/RecipeMenu';
@@ -20,8 +21,8 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
 
   return (
     <main className="min-h-dvh pb-32">
-      <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur-sm border-b border-neutral-800">
-        <div className="flex items-center gap-2 px-2 py-2">
+      <header className="sticky top-0 z-20 glass-top safe-top">
+        <div className="flex items-center gap-2 px-4 py-3">
           <Link
             href="/recipes"
             aria-label="Volver"
@@ -42,14 +43,15 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
           {recipe.emoji}
         </div>
         <h2 className="text-2xl font-bold">{recipe.name}</h2>
-        <div className="flex items-center justify-center gap-3 mt-2 text-sm text-text-muted">
-          {recipe.category && (
-            <span className="inline-flex items-center px-3 h-7 rounded-full bg-surface-2 capitalize">
-              {recipe.category}
-            </span>
-          )}
-          {recipe.prep_time_min != null && <span>⏱ {recipe.prep_time_min} min</span>}
-        </div>
+        {recipe.tags.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-3 text-sm text-text-muted">
+            {recipe.tags.map((tag) => (
+              <span key={tag} className="inline-flex items-center px-3 h-7 rounded-full bg-surface-2">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="px-4 mt-6">
@@ -70,7 +72,7 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
         </section>
       )}
 
-      <BottomNav />
+      <BottomNav currentWeek={getCurrentWeek()} />
     </main>
   );
 }
