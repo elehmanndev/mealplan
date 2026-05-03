@@ -67,6 +67,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
   const [suggestions, setSuggestions] = useState<Ingredient[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [matchedExisting, setMatchedExisting] = useState<boolean>(!!row.ingredient_id);
+  const [matchedPantry, setMatchedPantry] = useState<boolean>(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -85,6 +86,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
         setSuggestions(data);
         const exact = data.find((i) => i.name.toLowerCase() === q.toLowerCase());
         setMatchedExisting(!!exact);
+        setMatchedPantry(!!exact?.is_pantry);
       } catch {
         setSuggestions([]);
       }
@@ -104,10 +106,12 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
     });
     setShowSuggestions(false);
     setMatchedExisting(true);
+    setMatchedPantry(!!ing.is_pantry);
   };
 
   const handleNameChange = (name: string) => {
     onPatch({ name, ingredient_id: undefined });
+    setMatchedPantry(false);
   };
 
   const handleQuantityChange = (raw: string) => {
@@ -116,7 +120,8 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
     onPatch({ quantity: Number.isFinite(parsed) ? parsed : 0 });
   };
 
-  const showCategorySelect = !matchedExisting && row.name.trim().length > 0;
+  const isCreatingNew = !matchedExisting && row.name.trim().length > 0;
+  const showCategorySelect = isCreatingNew;
 
   return (
     <div className="bg-surface rounded-2xl p-3 space-y-2">
@@ -130,8 +135,21 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
             blurTimerRef.current = setTimeout(() => setShowSuggestions(false), 150);
           }}
           placeholder="Nombre del ingrediente"
-          className={`${inputCls} w-full`}
+          className={`${inputCls} w-full ${
+            isCreatingNew ? 'ring-1 ring-amber-500/50' : ''
+          }`}
         />
+        {isCreatingNew && (
+          <p className="mt-1 text-xs text-amber-400">
+            🆕 Se creará como ingrediente nuevo. Si existe en la lista de
+            sugerencias, selecciónalo para reusarlo.
+          </p>
+        )}
+        {matchedExisting && matchedPantry && (
+          <p className="mt-1 text-xs text-text-muted">
+            🫙 Despensa — no se añadirá a la lista de la compra
+          </p>
+        )}
         {showSuggestions && suggestions.length > 0 && (
           <ul className="absolute z-10 left-0 right-0 mt-1 bg-surface-2 rounded-xl shadow-lg max-h-56 overflow-y-auto">
             {suggestions.map((ing) => (
