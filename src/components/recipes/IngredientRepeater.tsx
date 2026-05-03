@@ -6,7 +6,7 @@ import type { RecipeIngredientInput } from '@/schemas';
 import type { Ingredient, Unit } from '@/types';
 import { UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
-import { Button } from '@/components/ui/Button';
+import { SUPERMARKETS } from '@/lib/supermarkets';
 
 interface IngredientRepeaterProps {
   value: RecipeIngredientInput[];
@@ -100,6 +100,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
       name: ing.name,
       unit: ing.default_unit,
       shopping_category: ing.shopping_category as RecipeIngredientInput['shopping_category'],
+      supermarket: ing.supermarket ?? null,
     });
     setShowSuggestions(false);
     setMatchedExisting(true);
@@ -148,6 +149,9 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
                   <span className="text-xs text-text-muted ml-2">
                     {ing.default_unit} · {ing.shopping_category}
                   </span>
+                  {ing.supermarket && (
+                    <SupermarketPill id={ing.supermarket} className="ml-2" />
+                  )}
                 </button>
               </li>
             ))}
@@ -198,6 +202,34 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           ))}
         </select>
       )}
+      <div className="flex gap-2 flex-wrap">
+        {SUPERMARKETS.map((sm) => {
+          const selected = row.supermarket === sm.id;
+          return (
+            <button
+              key={sm.id}
+              type="button"
+              onClick={() => onPatch({ supermarket: selected ? null : sm.id })}
+              className={[
+                'px-3 py-1 rounded-full text-xs font-semibold transition-all active:scale-95',
+                selected ? sm.pillClass : 'bg-surface-2 text-text-muted',
+              ].join(' ')}
+            >
+              {sm.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
+  );
+}
+
+function SupermarketPill({ id, className = '' }: { id: string; className?: string }) {
+  const sm = SUPERMARKETS.find((s) => s.id === id);
+  if (!sm) return null;
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${sm.pillClass} ${className}`}>
+      {sm.label}
+    </span>
   );
 }
