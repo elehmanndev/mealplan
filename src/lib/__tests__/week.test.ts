@@ -11,55 +11,67 @@ import {
 } from '../week';
 
 describe('parseWeek / formatWeek', () => {
-  it('round trips', () => {
-    const { year, week } = parseWeek('2025-W47');
-    expect(year).toBe(2025);
-    expect(week).toBe(47);
-    expect(formatWeek(year, week)).toBe('2025-W47');
+  it('round trips a YYYY-MM-DD Saturday', () => {
+    const d = parseWeek('2026-05-02');
+    expect(d.getDay()).toBe(6); // Saturday
+    expect(formatWeek(d)).toBe('2026-05-02');
   });
 
-  it('pads single-digit weeks', () => {
-    expect(formatWeek(2025, 3)).toBe('2025-W03');
+  it('rejects malformed week strings', () => {
+    expect(() => parseWeek('2026-W18')).toThrow();
+    expect(() => parseWeek('not a week')).toThrow();
   });
 });
 
 describe('getWeekStart', () => {
-  it('returns Monday for a given ISO week', () => {
-    const start = getWeekStart('2025-W47');
-    expect(start.getUTCDay() === 1 || start.getDay() === 1).toBe(true);
+  it('returns the Saturday opening the week', () => {
+    expect(formatDate(getWeekStart('2026-05-02'))).toBe('2026-05-02');
+  });
+
+  it('snaps a non-Saturday key back to its Saturday (defensive)', () => {
+    // 2026-05-05 is a Tuesday; its containing Sat→Fr week opens on 2026-05-02.
+    expect(formatDate(getWeekStart('2026-05-05'))).toBe('2026-05-02');
   });
 });
 
 describe('getWeekDates', () => {
-  it('returns 7 consecutive dates', () => {
-    const dates = getWeekDates('2025-W47');
+  it('returns 7 consecutive dates starting on Saturday', () => {
+    const dates = getWeekDates('2026-05-02');
     expect(dates).toHaveLength(7);
+    expect(dates[0].getDay()).toBe(6); // Sat
+    expect(dates[6].getDay()).toBe(5); // Fri
     for (let i = 1; i < 7; i++) {
       const diff = dates[i].getTime() - dates[i - 1].getTime();
       expect(diff).toBe(24 * 3600 * 1000);
     }
+    expect(formatDate(dates[0])).toBe('2026-05-02'); // Sat
+    expect(formatDate(dates[6])).toBe('2026-05-08'); // Fri
   });
 });
 
 describe('getCurrentWeek', () => {
-  it('formats with year-Wnn', () => {
-    expect(getCurrentWeek(new Date('2025-11-19T12:00:00Z'))).toMatch(/^\d{4}-W\d{2}$/);
+  it('formats as YYYY-MM-DD of the Saturday', () => {
+    // 2026-05-04 is a Monday; its Sat→Fr week opens on 2026-05-02.
+    expect(getCurrentWeek(new Date(2026, 4, 4, 12))).toBe('2026-05-02');
+    // 2026-05-02 is the Saturday itself.
+    expect(getCurrentWeek(new Date(2026, 4, 2, 12))).toBe('2026-05-02');
+    // 2026-05-08 is the Friday closing the week.
+    expect(getCurrentWeek(new Date(2026, 4, 8, 12))).toBe('2026-05-02');
   });
 });
 
 describe('next / prev week boundaries', () => {
-  it('rolls into next year past W52', () => {
-    expect(getNextWeek('2024-W52')).toBe('2025-W01');
+  it('rolls forward 7 days', () => {
+    expect(getNextWeek('2026-05-02')).toBe('2026-05-09');
   });
 
-  it('handles 2026 W53 (long year)', () => {
-    expect(getNextWeek('2026-W52')).toBe('2026-W53');
-    expect(getNextWeek('2026-W53')).toBe('2027-W01');
+  it('rolls backward 7 days', () => {
+    expect(getPrevWeek('2026-05-02')).toBe('2026-04-25');
   });
 
-  it('rolls back into previous year', () => {
-    expect(getPrevWeek('2025-W01')).toBe('2024-W52');
-    expect(getPrevWeek('2027-W01')).toBe('2026-W53');
+  it('crosses month and year boundaries', () => {
+    expect(getNextWeek('2026-12-26')).toBe('2027-01-02');
+    expect(getPrevWeek('2027-01-02')).toBe('2026-12-26');
   });
 });
 

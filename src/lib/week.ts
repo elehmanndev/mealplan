@@ -1,39 +1,38 @@
 import {
   addDays,
-  addWeeks,
   format,
-  getISOWeek,
-  getISOWeekYear,
-  parseISO,
-  setISOWeek,
-  setISOWeekYear,
-  startOfISOWeek,
+  parse,
+  startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const WEEK_RE = /^(\d{4})-W(\d{1,2})$/;
+// The app's "week" runs Saturday → Friday (Eric's planning rhythm), not the
+// ISO Monday → Sunday week. The week key is the YYYY-MM-DD date of the Saturday
+// that opens the week — easy to read in URLs, no W-N collision around year
+// boundaries, and `getWeekDates` returns the 7 days in calendar order.
 
-export function formatWeek(year: number, week: number): string {
-  return `${year}-W${String(week).padStart(2, '0')}`;
+const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// 6 = Saturday in date-fns' weekStartsOn convention (Sun=0, Mon=1, ..., Sat=6).
+const SATURDAY = 6 as const;
+
+export function formatWeek(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
 }
 
-export function parseWeek(week: string): { year: number; week: number } {
-  const m = WEEK_RE.exec(week);
-  if (!m) throw new Error(`Invalid week format: ${week}`);
-  return { year: Number(m[1]), week: Number(m[2]) };
+export function parseWeek(week: string): Date {
+  if (!WEEK_RE.test(week)) throw new Error(`Invalid week format: ${week}`);
+  return parse(week, 'yyyy-MM-dd', new Date());
 }
 
 export function getCurrentWeek(now: Date = new Date()): string {
-  return formatWeek(getISOWeekYear(now), getISOWeek(now));
+  return formatWeek(startOfWeek(now, { weekStartsOn: SATURDAY }));
 }
 
 export function getWeekStart(week: string): Date {
-  const { year, week: w } = parseWeek(week);
-  // Anchor to Jan 4 (always in W1 per ISO 8601), then set year/week, then start of ISO week.
-  const anchor = new Date(Date.UTC(year, 0, 4));
-  const withYear = setISOWeekYear(anchor, year);
-  const withWeek = setISOWeek(withYear, w);
-  return startOfISOWeek(withWeek);
+  // The week key already IS the Saturday — but normalize via startOfWeek to be
+  // safe against off-by-one timezone slips.
+  return startOfWeek(parseWeek(week), { weekStartsOn: SATURDAY });
 }
 
 export function getWeekDates(week: string): Date[] {
@@ -42,15 +41,11 @@ export function getWeekDates(week: string): Date[] {
 }
 
 export function getNextWeek(week: string): string {
-  const start = getWeekStart(week);
-  const next = addWeeks(start, 1);
-  return formatWeek(getISOWeekYear(next), getISOWeek(next));
+  return formatWeek(addDays(getWeekStart(week), 7));
 }
 
 export function getPrevWeek(week: string): string {
-  const start = getWeekStart(week);
-  const prev = addWeeks(start, -1);
-  return formatWeek(getISOWeekYear(prev), getISOWeek(prev));
+  return formatWeek(addDays(getWeekStart(week), -7));
 }
 
 export function formatDate(date: Date): string {
@@ -62,6 +57,7 @@ export function formatDayLabel(date: Date): string {
 }
 
 export function formatDayInitial(date: Date): string {
+  // 0=Sun, 1=Mon, ..., 6=Sat
   const map = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
   return map[date.getDay()];
 }
@@ -76,8 +72,8 @@ export function formatDayNumber(date: Date): string {
 }
 
 export function formatWeekLabel(week: string): string {
-  const { week: w } = parseWeek(week);
-  return `Sem. ${w}`;
+  // Show "Sem. 2 may" — the Saturday opening the week.
+  return `Sem. ${format(getWeekStart(week), "d MMM", { locale: es })}`;
 }
 
 export function isSameDay(a: Date, b: Date): boolean {
@@ -85,5 +81,5 @@ export function isSameDay(a: Date, b: Date): boolean {
 }
 
 export function dateFromString(s: string): Date {
-  return parseISO(s);
+  return parse(s, 'yyyy-MM-dd', new Date());
 }
