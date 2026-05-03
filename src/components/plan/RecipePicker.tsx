@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { addToPlanAction } from '@/actions/plan';
 import { formatDate, formatDayLabel } from '@/lib/week';
-import { RECIPE_CATEGORIES, type Recipe, type Slot } from '@/types';
+import { RECIPE_TAGS, type Recipe, type Slot } from '@/types';
 
 interface RecipePickerProps {
   open: boolean;
@@ -21,18 +21,18 @@ interface RecipePickerProps {
 export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
   const router = useRouter();
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<string>('');
+  const [activeTags, setActiveTags] = useState<string[]>([]);
   const [favOnly, setFavOnly] = useState(false);
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [servings, setServings] = useState(2);
   const [isPending, startTransition] = useTransition();
 
   const { data: recipes = [], isLoading } = useQuery<Recipe[]>({
-    queryKey: ['recipes-for-picker', search, category, favOnly],
+    queryKey: ['recipes-for-picker', search, activeTags, favOnly],
     queryFn: async () => {
       const sp = new URLSearchParams();
       if (search) sp.set('q', search);
-      if (category) sp.set('category', category);
+      if (activeTags.length) sp.set('tags', activeTags.join(','));
       if (favOnly) sp.set('fav', '1');
       const res = await fetch(`/api/recipes?${sp.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch recipes');
@@ -44,10 +44,13 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
   const handleClose = () => {
     setSelected(null);
     setSearch('');
-    setCategory('');
+    setActiveTags([]);
     setFavOnly(false);
     onClose();
   };
+
+  const toggleTag = (tag: string) =>
+    setActiveTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
 
   const handleSelect = (recipe: Recipe) => {
     setSelected(recipe);
@@ -125,10 +128,7 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 no-scrollbar">
           <button
             type="button"
-            onClick={() => {
-              setFavOnly(!favOnly);
-              setCategory('');
-            }}
+            onClick={() => setFavOnly(!favOnly)}
             className={[
               'shrink-0 inline-flex items-center gap-1 px-3 h-9 rounded-full text-sm font-medium border',
               favOnly
@@ -139,24 +139,21 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
             <Star size={14} />
             Favoritos
           </button>
-          {RECIPE_CATEGORIES.map((cat) => {
-            const active = category === cat;
+          {RECIPE_TAGS.map((tag) => {
+            const active = activeTags.includes(tag);
             return (
               <button
-                key={cat}
+                key={tag}
                 type="button"
-                onClick={() => {
-                  setCategory(active ? '' : cat);
-                  setFavOnly(false);
-                }}
+                onClick={() => toggleTag(tag)}
                 className={[
-                  'shrink-0 px-3 h-9 rounded-full text-sm font-medium border capitalize',
+                  'shrink-0 px-3 h-9 rounded-full text-sm font-medium border',
                   active
                     ? 'bg-accent text-white border-accent'
                     : 'bg-surface-2 border-neutral-700 text-text',
                 ].join(' ')}
               >
-                {cat}
+                {tag}
               </button>
             );
           })}
