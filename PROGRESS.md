@@ -1,8 +1,8 @@
 # MealPlan — Build Status
 
-**Status: v1 complete and verified locally. Plan view redesigned to a fixed-viewport calendar grid.**
+**Status: v1 shipped. Live at `https://mealplan.elehmann.dev` behind Cloudflare Access. Auto-deploys on push to `main` via the `mealplan-webhook` container on Unraid (~50s end-to-end). See [docs/auto-deploy.md](docs/auto-deploy.md).**
 
-Last update: 2026-05-02.
+Last update: 2026-05-03.
 
 ## Plan view layout (current)
 
@@ -53,9 +53,8 @@ Files involved (still these — only their internal markup changed):
 ## Next steps for Eric
 
 1. **PWA icons** — drop real PNGs into `/public` per `public/README-icons.txt` (`icon-192.png`, `icon-512.png`, `icon-512-maskable.png`, `apple-touch-icon.png`). Until then the install banner won't show.
-2. **Smoke test on mobile** — open `/` in Chrome DevTools device emulation (iPhone 13 Pro / Pixel 7), verify drag-and-drop on a slot card with the week populated, and check `touch-action: manipulation` doesn't block scroll.
-3. **Deploy** — `docker compose build && docker compose up -d` on Unraid. NPM proxy host → Cloudflare Tunnel → Cloudflare Access policy. Steps in `README.md`.
-4. **First-run** — DB starts empty (just ingredients seeded). Add a few recipes via `/recipes/new`, then drag them onto days.
+2. **Smoke test on mobile** — open `https://mealplan.elehmann.dev` on a real device, verify drag-and-drop on a slot card with the week populated, and check `touch-action: manipulation` doesn't block scroll.
+3. **First-run content** — DB starts empty (just ingredients seeded). Add a few recipes via `/recipes/new`, then drag them onto days.
 
 ## File map (final)
 
@@ -121,4 +120,4 @@ mealplan/
 12. ✅ WeekActionsMenu — duplicar semana anterior + limpiar semana
 13. ✅ PWA — manifest, sw.js (network-first /shopping*, cache-first /_next/static; offline mutation queue is a documented future)
 14. ✅ Dockerfile + docker-compose + smoke test local
-15. ✅ Deploy Unraid — container `mealplan` running on `192.168.1.45:3004` (host-port 3004 because mcphub holds 3001). NPM proxy + Cloudflare Access still pending Eric's side.
+15. ✅ Deploy Unraid + Cloudflare Tunnel + Access — `mealplan` container on `192.168.1.45:3004`, fronted by `https://mealplan.elehmann.dev` via the `Unraid-Cloudflared-Tunnel` (Access policy: One-Time PIN, allowlist of two emails, 1-month session). Auto-deploys on push via `mealplan-webhook` (HMAC-SHA256, `https://mealplan-deploy.elehmann.dev/hooks/mealplan-deploy`).
