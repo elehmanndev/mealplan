@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Calendar, BookOpen, ShoppingCart, ChevronRight } from 'lucide-react';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { Logo } from '@/components/ui/Logo';
 import { getCurrentWeek } from '@/lib/week';
 
 export default function HomePage() {
@@ -12,7 +13,10 @@ export default function HomePage() {
       <div className="flex-1 flex flex-col px-4 pt-12 gap-8">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-2 min-w-0">
-            <h1 className="text-3xl font-bold text-text">🍽️ MealPlan</h1>
+            <h1 className="flex items-center gap-2.5 text-3xl font-bold text-text">
+              <Logo className="w-8 h-8 text-accent shrink-0" />
+              MealPlan
+            </h1>
             <p className="text-sm whitespace-nowrap">
               <span className="text-text-muted/70">The premise is simple — </span>
               <span className="text-text font-medium">plan once. Eat all week.</span>
