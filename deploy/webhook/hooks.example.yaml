@@ -1,0 +1,28 @@
+# Template — the real hooks.yaml lives at /mnt/user/appdata/mealplan-webhook/
+# on the host (NOT in git; contains the HMAC secret).
+#
+# Copy this file to that location and replace REPLACE_ME_WITH_HEX_SECRET with
+# 32 random bytes hex (e.g. `openssl rand -hex 32`). The same secret must be
+# pasted into the GitHub webhook config.
+
+- id: mealplan-deploy
+  execute-command: /usr/local/bin/deploy.sh
+  command-working-directory: /mnt/user/appdata/mealplan
+  response-message: "Triggered."
+  response-headers:
+    - name: Content-Type
+      value: text/plain
+  trigger-rule:
+    and:
+      - match:
+          type: payload-hmac-sha256
+          secret: REPLACE_ME_WITH_HEX_SECRET
+          parameter:
+            source: header
+            name: X-Hub-Signature-256
+      - match:
+          type: value
+          value: refs/heads/main
+          parameter:
+            source: payload
+            name: ref

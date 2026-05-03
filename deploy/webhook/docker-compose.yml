@@ -1,0 +1,35 @@
+# Separate compose project from the app's docker-compose.yml so a deploy
+# (which runs `docker compose up -d --build` against the app project)
+# does NOT cycle the webhook container itself mid-flight.
+#
+# Bring it up with:
+#   docker compose -f /mnt/user/appdata/mealplan/deploy/webhook/docker-compose.yml -p mealplan-webhook up -d --build
+
+services:
+  mealplan-webhook:
+    build:
+      context: .
+    image: mealplan-webhook:latest
+    container_name: mealplan-webhook
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - "-hooks=/etc/webhook/hooks.yaml"
+      - "-port=9000"
+      - "-verbose"
+    environment:
+      - TZ=Europe/Madrid
+    volumes:
+      # Hooks config + deploy script live on the host at /mnt/user/appdata/mealplan-webhook/
+      # (NOT in git — hooks.yaml has the HMAC secret). Updates to deploy.sh after
+      # the bootstrap are a `cp deploy/webhook/deploy.sh /mnt/user/appdata/mealplan-webhook/`
+      # away.
+      - /mnt/user/appdata/mealplan-webhook/hooks.yaml:/etc/webhook/hooks.yaml:ro
+      - /mnt/user/appdata/mealplan-webhook/deploy.sh:/usr/local/bin/deploy.sh:ro
+      # The webhook needs to git-fetch + docker-compose-build the app, so it
+      # gets the app's working tree and the docker socket.
+      - /mnt/user/appdata/mealplan:/mnt/user/appdata/mealplan
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Deploy key + ssh config + known_hosts so `git fetch` over the SSH remote
+      # works inside the container. Read-only.
+      - /root/.ssh:/root/.ssh:ro
