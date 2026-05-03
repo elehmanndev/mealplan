@@ -30,7 +30,8 @@ describe('generateShoppingList', () => {
       INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2025-11-17', 'cena', 1001, 2);
     `);
 
-    const groups = generateShoppingList('2025-W47');
+    // Saturday-week opening on 2025-11-15 covers Mon 2025-11-17.
+    const groups = generateShoppingList('2025-11-15');
     const allItems = groups.flatMap((g) => g.items);
     const tomate = allItems.find((i) => i.name === 'TestTomate');
     // pasta (4 servings → ratio 2 → 200g) + salsa (2 servings → ratio 1 → 50g) = 250g
@@ -42,17 +43,17 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(`
-      INSERT INTO shopping_state (week, ingredient_id, checked, removed) VALUES ('2025-W47', 5000, 1, 0);
-      INSERT INTO shopping_state (week, ingredient_id, checked, removed) VALUES ('2025-W47', 5001, 0, 1);
+      INSERT INTO shopping_state (week, ingredient_id, checked, removed) VALUES ('2025-11-15', 5000, 1, 0);
+      INSERT INTO shopping_state (week, ingredient_id, checked, removed) VALUES ('2025-11-15', 5001, 0, 1);
     `);
-    const groups = generateShoppingList('2025-W47');
+    const groups = generateShoppingList('2025-11-15');
     const allItems = groups.flatMap((g) => g.items);
     const tomate = allItems.find((i) => i.name === 'TestTomate');
     expect(tomate?.checked).toBe(true);
     const pastaItem = allItems.find((i) => i.name === 'TestPasta');
     expect(pastaItem).toBeUndefined();
 
-    const groupsWithRemoved = generateShoppingList('2025-W47', { includeRemoved: true });
+    const groupsWithRemoved = generateShoppingList('2025-11-15', { includeRemoved: true });
     const allWithRemoved = groupsWithRemoved.flatMap((g) => g.items);
     expect(allWithRemoved.find((i) => i.name === 'TestPasta')).toBeDefined();
   });
@@ -63,9 +64,9 @@ describe('generateShoppingList', () => {
 
     db.exec(
       `INSERT INTO shopping_extras (week, name, quantity, unit, shopping_category)
-       VALUES ('2025-W47', 'Papel higiénico', 1, 'ud', 'otros')`,
+       VALUES ('2025-11-15', 'Papel higiénico', 1, 'ud', 'otros')`,
     );
-    const groups = generateShoppingList('2025-W47');
+    const groups = generateShoppingList('2025-11-15');
     const allItems = groups.flatMap((g) => g.items);
     expect(allItems.some((i) => i.name === 'Papel higiénico')).toBe(true);
   });
@@ -85,7 +86,8 @@ describe('generateShoppingList', () => {
       INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-01-05', 'comida', 1100, 2);
     `);
 
-    const groups = generateShoppingList('2026-W02');
+    // Saturday-week opening on 2026-01-03 covers Mon 2026-01-05.
+    const groups = generateShoppingList('2026-01-03');
     const allItems = groups.flatMap((g) => g.items);
     expect(allItems.find((i) => i.name === 'TestAceite')).toBeUndefined();
     expect(allItems.find((i) => i.name === 'TestArroz')).toBeDefined();
@@ -112,7 +114,8 @@ describe('generateShoppingList', () => {
       INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-02-09', 'cena', 1201, 2);
     `);
 
-    const groups = generateShoppingList('2026-W07');
+    // Saturday-week opening on 2026-02-07 covers Mon 2026-02-09.
+    const groups = generateShoppingList('2026-02-07');
     const allItems = groups.flatMap((g) => g.items);
     // 0.5 + 0.5 = 1.0, packaged → 1
     expect(allItems.find((i) => i.name === 'TestAceitunas')?.quantity).toBe(1);
@@ -139,7 +142,8 @@ describe('generateShoppingList', () => {
       INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-03-09', 'comida', 1301, 2);
     `);
 
-    const groups = generateShoppingList('2026-W11');
+    // Saturday-week opening on 2026-03-07 covers Mon 2026-03-09.
+    const groups = generateShoppingList('2026-03-07');
     const allItems = groups.flatMap((g) => g.items);
     expect(allItems.find((i) => i.name === 'TestShared')?.quantity).toBe(250);
   });

@@ -50,7 +50,9 @@ export type PlanMoveInput = z.infer<typeof PlanMoveInput>;
 export const PlanDuplicateInput = PlanMoveInput;
 export type PlanDuplicateInput = z.infer<typeof PlanDuplicateInput>;
 
-export const WeekStr = z.string().regex(/^\d{4}-W\d{2}$/);
+// Week key is the YYYY-MM-DD date of the Saturday opening the week.
+// (See src/lib/week.ts for the rationale — Eric plans Sa→Fr, not Mon→Sun.)
+export const WeekStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const ShoppingExtraInput = z.object({
   week: WeekStr,
