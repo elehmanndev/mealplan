@@ -153,14 +153,15 @@ const RECIPES = [
     ],
   },
   {
-    name: 'Amanida llonganissa',
+    // Atomic salad base — pair freely with whatever protein (Llonganissa,
+    // Pollastre, salmón…). Replaces the old combined "Amanida llonganissa".
+    name: 'Amanida',
     emoji: '🥗',
     category: 'ensalada',
     base_servings: 2,
     prep_time_min: 10,
     tags: ['Ensaladas', 'Cenas'],
     ingredients: [
-      ['Llonganissa', 2, 'pieza'],
       ['Bolsa ensalada 4 estaciones', 0.5, 'bolsa'],
       ['Bolsa ensalada brotes tiernos', 0.5, 'bolsa'],
       ['Bandeja tomate cherry', 0.5, 'bandeja'],
@@ -169,6 +170,21 @@ const RECIPES = [
       ['Aceite de oliva', 1, 'cucharada'],
       ['Sal', 1, 'pellizco'],
       ['Pimienta negra', 1, 'pellizco'],
+    ],
+  },
+  {
+    // Atomic protein — same pattern as Pollastre filetejat. Pair with Amanida
+    // or any other base.
+    name: 'Llonganissa',
+    emoji: '🌭',
+    category: 'carne',
+    base_servings: 2,
+    prep_time_min: 10,
+    tags: ['Cenas'],
+    ingredients: [
+      ['Llonganissa', 2, 'pieza'],
+      ['Aceite de oliva', 1, 'cucharada'],
+      ['Sal', 1, 'pellizco'],
     ],
   },
   {
@@ -276,19 +292,23 @@ const RECIPES = [
 // All recipes are base_servings=2 and plan servings=2 (ratio 1), since they're
 // all "comida para 2 personas". TU/TH lunch hold two entries each (Ensaladilla
 // + Pollastre filetejat) — multi-entry-per-slot enabled by mig 006.
+// Sat → Fri week. Mirrors Eric's planning rhythm. Cells with "+" hold two
+// plan entries (multi-entry slots, enabled by mig 006).
 const PLAN_ENTRIES = [
   ['2026-05-02', 'comida', 'Carbonara'],
   ['2026-05-02', 'cena', 'Pizza'],
   ['2026-05-03', 'comida', 'Solomillo al Pepe'],
-  ['2026-05-03', 'cena', 'Amanida llonganissa'],
+  ['2026-05-03', 'cena', 'Amanida'],         // SU cena: Amanida + Llonganissa
+  ['2026-05-03', 'cena', 'Llonganissa'],
   ['2026-05-04', 'comida', 'Amanida pasta'],
   ['2026-05-04', 'cena', 'Truita de patates i carbassó'],
-  ['2026-05-05', 'comida', 'Ensaladilla'],
+  ['2026-05-05', 'comida', 'Ensaladilla'],   // TU lunch: Ensaladilla + Pollastre
   ['2026-05-05', 'comida', 'Pollastre filetejat'],
-  ['2026-05-05', 'cena', 'Amanida llonganissa'],
+  ['2026-05-05', 'cena', 'Amanida'],         // TU cena: Amanida + Llonganissa
+  ['2026-05-05', 'cena', 'Llonganissa'],
   ['2026-05-06', 'comida', 'Amanida pasta'],
   ['2026-05-06', 'cena', 'Pa amb tomàquet'],
-  ['2026-05-07', 'comida', 'Ensaladilla'],
+  ['2026-05-07', 'comida', 'Ensaladilla'],   // TH lunch: Ensaladilla + Pollastre
   ['2026-05-07', 'comida', 'Pollastre filetejat'],
   ['2026-05-07', 'cena', 'Fajitas'],
   ['2026-05-08', 'cena', 'Pizza'],
