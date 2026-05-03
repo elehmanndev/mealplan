@@ -9,13 +9,13 @@ import { DraggablePlanCard } from './DraggablePlanCard';
 interface PlanSlotProps {
   date: Date;
   slot: Slot;
-  entry?: PlanEntry;
+  entries: PlanEntry[];
   isToday: boolean;
   onTapEmpty: () => void;
   onTapEntry: (entry: PlanEntry) => void;
 }
 
-export function PlanSlot({ date, slot, entry, isToday, onTapEmpty, onTapEntry }: PlanSlotProps) {
+export function PlanSlot({ date, slot, entries, isToday, onTapEmpty, onTapEntry }: PlanSlotProps) {
   const id = `${formatDate(date)}-${slot}`;
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -25,27 +25,33 @@ export function PlanSlot({ date, slot, entry, isToday, onTapEmpty, onTapEntry }:
       ? 'ring-1 ring-accent/30'
       : '';
 
+  const empty = entries.length === 0;
+
   return (
     <div
       ref={setNodeRef}
       className={['rounded-xl transition-colors h-full min-h-0', ringClass].join(' ')}
     >
-      {entry ? (
-        <DraggablePlanCard entry={entry} onTap={() => onTapEntry(entry)} />
-      ) : (
+      <div className="flex flex-col gap-1 h-full">
+        {entries.map((entry) => (
+          <div key={entry.id} className="flex-1 min-h-0">
+            <DraggablePlanCard entry={entry} onTap={() => onTapEntry(entry)} />
+          </div>
+        ))}
         <button
           type="button"
           onClick={onTapEmpty}
-          aria-label="Añadir comida"
+          aria-label={empty ? 'Añadir comida' : 'Añadir otra receta a este slot'}
           className={[
-            'w-full h-full rounded-xl border border-dashed flex items-center justify-center',
+            'rounded-xl border border-dashed flex items-center justify-center',
             'text-text-muted active:scale-[0.98] transition-transform',
             isToday ? 'border-accent/40 bg-accent/5' : 'border-neutral-800 bg-surface/40',
+            empty ? 'flex-1 w-full' : 'h-6 w-full',
           ].join(' ')}
         >
-          <Plus size={20} />
+          <Plus size={empty ? 20 : 14} />
         </button>
-      )}
+      </div>
     </div>
   );
 }
