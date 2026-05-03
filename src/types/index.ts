@@ -24,11 +24,21 @@ export const RECIPE_TAGS = [
 export type RecipeTag = (typeof RECIPE_TAGS)[number];
 
 export const UNITS = [
+  // Mass / volume
   'g',
   'kg',
   'ml',
   'l',
+  // Counted-as-bought (one per supermarket package)
   'ud',
+  'pieza',
+  'unidad',
+  'paquete',
+  'lata',
+  'bandeja',
+  'bolsa',
+  'brick',
+  // Cooking measures
   'cucharada',
   'cucharadita',
   'pellizco',
@@ -36,6 +46,20 @@ export const UNITS = [
   'diente',
 ] as const;
 export type Unit = (typeof UNITS)[number];
+
+// Units sold as a discrete package — when summing for the shopping list, totals
+// in these units round up to the nearest whole. (Don't ceil g/ml — buying 1g
+// extra of tomato to round 49g→50g is silly.)
+export const PACKAGED_UNITS = new Set<Unit>([
+  'ud',
+  'pieza',
+  'unidad',
+  'paquete',
+  'lata',
+  'bandeja',
+  'bolsa',
+  'brick',
+]);
 
 export const SLOTS = ['comida', 'cena'] as const;
 export type Slot = (typeof SLOTS)[number];
@@ -73,6 +97,9 @@ export interface Ingredient {
   default_unit: Unit;
   shopping_category: string;
   supermarket?: string | null;
+  // When true, the shopping list ignores this ingredient (e.g. olive oil, salt,
+  // pepper — pantry staples the user already has). Still included in recipes.
+  is_pantry?: boolean;
 }
 
 export interface PlanEntry {

@@ -62,8 +62,13 @@ export function WeekView({ week, entries }: WeekViewProps) {
   const today = useMemo(() => new Date(), []);
 
   const entriesByCell = useMemo(() => {
-    const map = new Map<string, PlanEntry>();
-    for (const e of localEntries) map.set(`${e.date}-${e.slot}`, e);
+    const map = new Map<string, PlanEntry[]>();
+    for (const e of localEntries) {
+      const key = `${e.date}-${e.slot}`;
+      const arr = map.get(key);
+      if (arr) arr.push(e);
+      else map.set(key, [e]);
+    }
     return map;
   }, [localEntries]);
 
@@ -91,15 +96,10 @@ export function WeekView({ week, entries }: WeekViewProps) {
     if (!entry) return;
     if (entry.date === toDate && entry.slot === toSlot) return;
 
-    const swappedTarget = localEntries.find((e) => e.date === toDate && e.slot === toSlot);
+    // Multi-entry slots: just move (no swap). If the destination has other
+    // entries, the dragged one joins them.
     setLocalEntries((prev) =>
-      prev.map((e) => {
-        if (e.id === entryId) return { ...e, date: toDate, slot: toSlot };
-        if (swappedTarget && e.id === swappedTarget.id) {
-          return { ...e, date: entry.date, slot: entry.slot };
-        }
-        return e;
-      }),
+      prev.map((e) => (e.id === entryId ? { ...e, date: toDate, slot: toSlot } : e)),
     );
 
     startTransition(async () => {
@@ -174,7 +174,7 @@ export function WeekView({ week, entries }: WeekViewProps) {
                       key={`${dateKey}-${slot}`}
                       date={date}
                       slot={slot}
-                      entry={entriesByCell.get(`${dateKey}-${slot}`)}
+                      entries={entriesByCell.get(`${dateKey}-${slot}`) ?? []}
                       isToday={isToday}
                       onTapEmpty={() => setPickerTarget({ date, slot })}
                       onTapEntry={(e) => setMenuEntry(e)}

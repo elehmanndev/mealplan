@@ -53,18 +53,9 @@ export function listWeekPlan(weekStr: string): PlanEntry[] {
 }
 
 export function addPlanEntry(input: { date: string; slot: Slot; recipe_id: number; servings: number }): number {
-  // INSERT OR REPLACE preserves the UNIQUE(date, slot) constraint by overwriting
-  const existing = db
-    .prepare('SELECT id FROM meal_plan WHERE date = ? AND slot = ?')
-    .get(input.date, input.slot) as { id: number } | undefined;
-  if (existing) {
-    db.prepare('UPDATE meal_plan SET recipe_id = ?, servings = ? WHERE id = ?').run(
-      input.recipe_id,
-      input.servings,
-      existing.id,
-    );
-    return existing.id;
-  }
+  // (date, slot) is no longer UNIQUE — multiple recipes per slot are allowed,
+  // so this always inserts a new row. To replace, use updatePlanServings or
+  // removePlanEntry + addPlanEntry.
   const res = db
     .prepare('INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES (?, ?, ?, ?)')
     .run(input.date, input.slot, input.recipe_id, input.servings);
@@ -72,40 +63,13 @@ export function addPlanEntry(input: { date: string; slot: Slot; recipe_id: numbe
 }
 
 export function movePlanEntry(input: { entry_id: number; to_date: string; to_slot: Slot }): void {
-  const tx = db.transaction((data: typeof input) => {
-    const src = db.prepare('SELECT * FROM meal_plan WHERE id = ?').get(data.entry_id) as
-      | { id: number; date: string; slot: Slot; recipe_id: number; servings: number }
-      | undefined;
-    if (!src) return;
-    if (src.date === data.to_date && src.slot === data.to_slot) return;
-    const dst = db
-      .prepare('SELECT * FROM meal_plan WHERE date = ? AND slot = ? AND id != ?')
-      .get(data.to_date, data.to_slot, data.entry_id) as
-      | { id: number; recipe_id: number; servings: number }
-      | undefined;
-    if (dst) {
-      // Swap: temporarily move src to a "parking" date to free its slot, then place dst into src's slot
-      // and src into dst's slot. Use NULL-safe approach via two UPDATEs in a transaction.
-      db.prepare('UPDATE meal_plan SET date = ?, slot = ? WHERE id = ?').run(
-        '0000-00-00',
-        'comida',
-        data.entry_id,
-      );
-      db.prepare('UPDATE meal_plan SET date = ?, slot = ? WHERE id = ?').run(src.date, src.slot, dst.id);
-      db.prepare('UPDATE meal_plan SET date = ?, slot = ? WHERE id = ?').run(
-        data.to_date,
-        data.to_slot,
-        data.entry_id,
-      );
-    } else {
-      db.prepare('UPDATE meal_plan SET date = ?, slot = ? WHERE id = ?').run(
-        data.to_date,
-        data.to_slot,
-        data.entry_id,
-      );
-    }
-  });
-  tx(input);
+  // With multi-entry slots, dropping onto an occupied slot just joins it —
+  // the previous "swap" semantics no longer make sense.
+  db.prepare('UPDATE meal_plan SET date = ?, slot = ? WHERE id = ?').run(
+    input.to_date,
+    input.to_slot,
+    input.entry_id,
+  );
 }
 
 export function duplicatePlanEntry(input: { entry_id: number; to_date: string; to_slot: Slot }): number {
