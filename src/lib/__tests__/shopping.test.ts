@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,10 +19,10 @@ describe('generateShoppingList', () => {
     db.exec(`
       INSERT INTO recipes (id, name, base_servings) VALUES (1000, 'Test Pasta', 2);
       INSERT INTO recipes (id, name, base_servings) VALUES (1001, 'Test Salsa', 2);
-      INSERT INTO ingredients (id, name, default_unit, shopping_category)
-        VALUES (5000, 'TestTomate', 'g', 'verduras');
-      INSERT INTO ingredients (id, name, default_unit, shopping_category)
-        VALUES (5001, 'TestPasta', 'g', 'despensa');
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5000, 'TestTomate', 'g', 'verduras', 'mercadona');
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5001, 'TestPasta', 'g', 'despensa', 'mercadona');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1000, 5000, 100, 'g');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1000, 5001, 200, 'g');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1001, 5000, 50, 'g');
@@ -31,9 +31,8 @@ describe('generateShoppingList', () => {
     `);
 
     const groups = generateShoppingList('2025-W47');
-    const verduras = groups.find((g) => g.category === 'verduras');
-    expect(verduras).toBeDefined();
-    const tomate = verduras!.items.find((i) => i.name === 'TestTomate');
+    const allItems = groups.flatMap((g) => g.items);
+    const tomate = allItems.find((i) => i.name === 'TestTomate');
     // pasta (4 servings → ratio 2 → 200g) + salsa (2 servings → ratio 1 → 50g) = 250g
     expect(tomate?.quantity).toBe(250);
   });
@@ -67,13 +66,85 @@ describe('generateShoppingList', () => {
        VALUES ('2025-W47', 'Papel higiénico', 1, 'ud', 'otros')`,
     );
     const groups = generateShoppingList('2025-W47');
-    const otros = groups.find((g) => g.category === 'otros');
-    expect(otros?.items.some((i) => i.name === 'Papel higiénico')).toBe(true);
+    const allItems = groups.flatMap((g) => g.items);
+    expect(allItems.some((i) => i.name === 'Papel higiénico')).toBe(true);
+  });
+
+  it('skips is_pantry ingredients (oil/salt/pepper)', async () => {
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(`
+      INSERT INTO recipes (id, name, base_servings) VALUES (1100, 'Test Pantry Recipe', 2);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket, is_pantry)
+        VALUES (5100, 'TestAceite', 'ml', 'despensa', 'lidl', 1);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket, is_pantry)
+        VALUES (5101, 'TestArroz', 'g', 'despensa', 'lidl', 0);
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1100, 5100, 30, 'ml');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1100, 5101, 200, 'g');
+      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-01-05', 'comida', 1100, 2);
+    `);
+
+    const groups = generateShoppingList('2026-W02');
+    const allItems = groups.flatMap((g) => g.items);
+    expect(allItems.find((i) => i.name === 'TestAceite')).toBeUndefined();
+    expect(allItems.find((i) => i.name === 'TestArroz')).toBeDefined();
+  });
+
+  it('rounds packaged units up (lata, bandeja, ud, pieza...) but not g/ml', async () => {
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(`
+      INSERT INTO recipes (id, name, base_servings) VALUES (1200, 'Half Cans', 2);
+      INSERT INTO recipes (id, name, base_servings) VALUES (1201, 'Half Tray', 2);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5200, 'TestAceitunas', 'lata', 'despensa', 'lidl');
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5201, 'TestCherry', 'bandeja', 'verduras', 'lidl');
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5202, 'TestHarina', 'g', 'despensa', 'lidl');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1200, 5200, 0.5, 'lata');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1200, 5202, 100, 'g');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1201, 5200, 0.5, 'lata');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1201, 5201, 0.5, 'bandeja');
+      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-02-09', 'comida', 1200, 2);
+      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-02-09', 'cena', 1201, 2);
+    `);
+
+    const groups = generateShoppingList('2026-W07');
+    const allItems = groups.flatMap((g) => g.items);
+    // 0.5 + 0.5 = 1.0, packaged → 1
+    expect(allItems.find((i) => i.name === 'TestAceitunas')?.quantity).toBe(1);
+    // 0.5, packaged → ceil(0.5) = 1
+    expect(allItems.find((i) => i.name === 'TestCherry')?.quantity).toBe(1);
+    // 100g, NOT packaged → 100
+    expect(allItems.find((i) => i.name === 'TestHarina')?.quantity).toBe(100);
+  });
+
+  it('aggregates same ingredient across multiple plan entries in the same slot', async () => {
+    // Multi-entry-per-slot regression: if Ensaladilla and Pollastre both appear
+    // in the same lunch slot, their shared ingredients must still sum correctly.
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(`
+      INSERT INTO recipes (id, name, base_servings) VALUES (1300, 'Recipe A', 2);
+      INSERT INTO recipes (id, name, base_servings) VALUES (1301, 'Recipe B', 2);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5300, 'TestShared', 'g', 'verduras', 'lidl');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1300, 5300, 100, 'g');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1301, 5300, 150, 'g');
+      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-03-09', 'comida', 1300, 2);
+      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-03-09', 'comida', 1301, 2);
+    `);
+
+    const groups = generateShoppingList('2026-W11');
+    const allItems = groups.flatMap((g) => g.items);
+    expect(allItems.find((i) => i.name === 'TestShared')?.quantity).toBe(250);
   });
 });
 
-// Cleanup test DB after suite
-import { afterAll } from 'vitest';
 afterAll(() => {
   try {
     if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
