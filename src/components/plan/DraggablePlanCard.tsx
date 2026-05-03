@@ -40,7 +40,6 @@ export function DraggablePlanCard({ entry, onTap }: DraggablePlanCardProps) {
         <div className="text-xs font-medium leading-tight line-clamp-2">
           {entry.recipe?.name ?? 'Receta'}
         </div>
-        <div className="text-[10px] text-text-muted leading-tight">{entry.servings}p</div>
       </div>
     </button>
   );

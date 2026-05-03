@@ -66,6 +66,11 @@ export function formatDayInitial(date: Date): string {
   return map[date.getDay()];
 }
 
+export function formatDayName(date: Date): string {
+  const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return days[date.getDay()];
+}
+
 export function formatDayNumber(date: Date): string {
   return format(date, 'd');
 }

@@ -17,7 +17,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { movePlanEntryAction } from '@/actions/plan';
 import {
   formatDate,
-  formatDayInitial,
+  formatDayName,
   formatDayNumber,
   getWeekDates,
   isSameDay,
@@ -126,7 +126,7 @@ export function WeekView({ week, entries }: WeekViewProps) {
           <div
             className="grid gap-2 h-full"
             style={{
-              gridTemplateColumns: '52px repeat(2, minmax(0, 1fr))',
+              gridTemplateColumns: '44px repeat(2, minmax(0, 1fr))',
               gridTemplateRows: 'auto repeat(7, minmax(0, 1fr))',
             }}
           >
@@ -154,11 +154,11 @@ export function WeekView({ week, entries }: WeekViewProps) {
                   >
                     <span
                       className={[
-                        'text-[10px] uppercase font-semibold leading-none',
+                        'text-[8px] uppercase font-semibold leading-none tracking-tight',
                         isToday ? 'text-accent' : 'text-text-muted',
                       ].join(' ')}
                     >
-                      {formatDayInitial(date)}
+                      {formatDayName(date)}
                     </span>
                     <span
                       className={[

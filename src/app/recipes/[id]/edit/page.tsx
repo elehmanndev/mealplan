@@ -17,8 +17,8 @@ export default async function EditRecipePage({ params }: EditRecipePageProps) {
 
   return (
     <main className="min-h-dvh pb-24">
-      <header className="sticky top-0 z-20 bg-bg/95 backdrop-blur-sm border-b border-neutral-800">
-        <div className="flex items-center gap-2 px-2 py-2">
+      <header className="sticky top-0 z-20 glass-top safe-top">
+        <div className="flex items-center gap-2 px-4 py-3">
           <Link
             href={`/recipes/${recipeId}`}
             aria-label="Volver"

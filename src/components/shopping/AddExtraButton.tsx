@@ -17,7 +17,7 @@ export function AddExtraButton({ week }: AddExtraButtonProps) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Añadir item"
-        className="fixed bottom-20 right-4 z-30 w-14 h-14 rounded-full bg-accent text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full bg-accent text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
       >
         <Plus size={28} />
       </button>
