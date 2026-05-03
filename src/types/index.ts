@@ -12,6 +12,17 @@ export const RECIPE_CATEGORIES = [
 ] as const;
 export type RecipeCategory = (typeof RECIPE_CATEGORIES)[number];
 
+export const RECIPE_TAGS = [
+  'Pasta',
+  'Ensaladas',
+  'Cenas',
+  'Comidas',
+  'Tuppers',
+  'Verano',
+  'Invierno',
+] as const;
+export type RecipeTag = (typeof RECIPE_TAGS)[number];
+
 export const UNITS = [
   'g',
   'kg',
@@ -40,6 +51,7 @@ export interface Recipe {
   notes: string | null;
   is_favorite: boolean;
   created_at: string;
+  tags: string[];
 }
 
 export interface RecipeIngredient {
@@ -48,6 +60,7 @@ export interface RecipeIngredient {
   quantity: number;
   unit: Unit;
   shopping_category: string;
+  supermarket?: string | null;
 }
 
 export interface RecipeWithIngredients extends Recipe {
@@ -59,6 +72,7 @@ export interface Ingredient {
   name: string;
   default_unit: Unit;
   shopping_category: string;
+  supermarket?: string | null;
 }
 
 export interface PlanEntry {

@@ -23,16 +23,22 @@ export function findOrCreateIngredient(
   name: string,
   defaultUnit: string,
   shoppingCategory: string,
+  supermarket?: string | null,
 ): number {
   const trimmed = name.trim();
   const existing = db
     .prepare('SELECT id FROM ingredients WHERE LOWER(name) = LOWER(?)')
     .get(trimmed) as { id: number } | undefined;
-  if (existing) return existing.id;
+  if (existing) {
+    if (supermarket !== undefined) {
+      db.prepare('UPDATE ingredients SET supermarket = ? WHERE id = ?').run(supermarket, existing.id);
+    }
+    return existing.id;
+  }
   const result = db
     .prepare(
-      'INSERT INTO ingredients (name, default_unit, shopping_category) VALUES (?, ?, ?)',
+      'INSERT INTO ingredients (name, default_unit, shopping_category, supermarket) VALUES (?, ?, ?, ?)',
     )
-    .run(trimmed, defaultUnit, shoppingCategory);
+    .run(trimmed, defaultUnit, shoppingCategory, supermarket ?? null);
   return Number(result.lastInsertRowid);
 }
