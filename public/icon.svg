@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    :root { color: #0f172a; }
+    @media (prefers-color-scheme: dark) {
+      :root { color: #f4f5f7; }
+    }
+  </style>
+  <rect x="6" y="11" width="38" height="41" rx="4" />
+  <rect x="14" y="5" width="3" height="9" rx="1.5" fill="currentColor" stroke="none" />
+  <rect x="33" y="5" width="3" height="9" rx="1.5" fill="currentColor" stroke="none" />
+  <line x1="6" y1="20" x2="44" y2="20" />
+  <rect x="12" y="26" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="19" y="26" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="26" y="26" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="33" y="26" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="12" y="33" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="19" y="33" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="26" y="33" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="12" y="40" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <rect x="19" y="40" width="3" height="3" rx="0.5" fill="currentColor" stroke="none" />
+  <circle cx="46" cy="44" r="14" fill="white" stroke="currentColor" stroke-width="2.5" />
+  <line x1="39" y1="37" x2="39" y2="42" />
+  <line x1="41" y1="37" x2="41" y2="42" />
+  <line x1="43" y1="37" x2="43" y2="42" />
+  <line x1="41" y1="42" x2="41" y2="51" />
+  <ellipse cx="51" cy="40" rx="2.5" ry="3.5" />
+  <line x1="51" y1="43.5" x2="51" y2="51" />
+</svg>

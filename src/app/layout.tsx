@@ -4,8 +4,12 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'MealPlan',
-  description: 'Planificador de comidas semanales',
+  description: 'Plan once. Eat all week.',
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/icon-maskable.svg', type: 'image/svg+xml' }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
