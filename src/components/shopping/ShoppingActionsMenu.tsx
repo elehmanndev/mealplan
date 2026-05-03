@@ -2,18 +2,17 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardCopy, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { ClipboardCopy, RotateCcw } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { resetChecksAction } from '@/actions/shopping';
 
 interface ShoppingActionsMenuProps {
   week: string;
-  showRemoved: boolean;
   open: boolean;
   onClose: () => void;
 }
 
-export function ShoppingActionsMenu({ week, showRemoved, open, onClose }: ShoppingActionsMenuProps) {
+export function ShoppingActionsMenu({ week, open, onClose }: ShoppingActionsMenuProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
@@ -39,12 +38,6 @@ export function ShoppingActionsMenu({ week, showRemoved, open, onClose }: Shoppi
     });
   }
 
-  function handleToggleRemoved() {
-    const url = showRemoved ? `/shopping?week=${week}` : `/shopping?week=${week}&removed=1`;
-    router.replace(url);
-    onClose();
-  }
-
   return (
     <BottomSheet open={open} onClose={onClose} title="Opciones">
       <ul className="flex flex-col">
@@ -67,20 +60,6 @@ export function ShoppingActionsMenu({ week, showRemoved, open, onClose }: Shoppi
           >
             <RotateCcw size={20} className="text-text-muted" />
             <span>Reset checks</span>
-          </button>
-        </li>
-        <li>
-          <button
-            type="button"
-            onClick={handleToggleRemoved}
-            className="w-full flex items-center gap-3 min-h-touch px-2 py-3 text-left hover:bg-surface-2 rounded-xl"
-          >
-            {showRemoved ? (
-              <EyeOff size={20} className="text-text-muted" />
-            ) : (
-              <Eye size={20} className="text-text-muted" />
-            )}
-            <span>{showRemoved ? 'Ocultar eliminados' : 'Mostrar eliminados'}</span>
           </button>
         </li>
       </ul>
