@@ -1,8 +1,9 @@
 import { z } from 'zod';
-import { RECIPE_CATEGORIES, SLOTS, UNITS } from '@/types';
+import { RECIPE_CATEGORIES, RECIPE_TAGS, SLOTS, UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
 
 export const RecipeCategoryEnum = z.enum(RECIPE_CATEGORIES);
+export const RecipeTagEnum = z.enum(RECIPE_TAGS);
 export const UnitEnum = z.enum(UNITS);
 export const SlotEnum = z.enum(SLOTS);
 export const ShoppingCategoryEnum = z.enum(SHOPPING_CATEGORIES);
@@ -13,6 +14,7 @@ export const RecipeIngredientInput = z.object({
   quantity: z.number().positive(),
   unit: UnitEnum,
   shopping_category: ShoppingCategoryEnum.optional(),
+  supermarket: z.string().nullable().optional(),
 });
 export type RecipeIngredientInput = z.infer<typeof RecipeIngredientInput>;
 
@@ -26,6 +28,7 @@ export const RecipeInput = z.object({
   notes: z.string().max(2000).optional().nullable(),
   is_favorite: z.boolean().default(false),
   ingredients: z.array(RecipeIngredientInput).default([]),
+  tags: z.array(RecipeTagEnum).default([]),
 });
 export type RecipeInput = z.infer<typeof RecipeInput>;
 

@@ -21,11 +21,13 @@ export interface ShoppingItem {
   quantity: number | null;
   unit: string | null;
   category: ShoppingCategory;
+  supermarket?: string | null;
   checked: boolean;
   removed: boolean;
 }
 
 export interface ShoppingGroup {
-  category: ShoppingCategory;
+  supermarket: string | null;
+  label: string;
   items: ShoppingItem[];
 }

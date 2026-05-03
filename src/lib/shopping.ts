@@ -1,6 +1,7 @@
 import { db } from './db';
 import { formatDate, getWeekDates } from './week';
 import { SHOPPING_CATEGORIES } from './shopping-types';
+import { SUPERMARKETS } from './supermarkets';
 import type { ShoppingCategory, ShoppingGroup, ShoppingItem } from './shopping-types';
 
 export { SHOPPING_CATEGORIES };
@@ -18,6 +19,7 @@ interface IngRow {
   id: number;
   name: string;
   shopping_category: ShoppingCategory;
+  supermarket: string | null;
 }
 
 interface StateRow {
@@ -56,7 +58,7 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
     const ratio = meal.servings / meal.base_servings;
     const ings = db
       .prepare(
-        `SELECT ri.quantity, ri.unit, i.id, i.name, i.shopping_category
+        `SELECT ri.quantity, ri.unit, i.id, i.name, i.shopping_category, i.supermarket
          FROM recipe_ingredients ri JOIN ingredients i ON i.id = ri.ingredient_id
          WHERE ri.recipe_id = ?`,
       )
@@ -79,6 +81,7 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
           quantityNumber: q,
           unit: ing.unit,
           category: ing.shopping_category,
+          supermarket: ing.supermarket ?? null,
           checked: false,
           removed: false,
         });
@@ -120,12 +123,16 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
   const all = [...totals.values(), ...extraItems];
   const visible = includeRemoved ? all : all.filter((i) => !i.removed);
 
-  const groups: ShoppingGroup[] = SHOPPING_CATEGORIES.map((cat) => ({
-    category: cat,
-    items: visible
-      .filter((i) => i.category === cat)
-      .sort((a, b) => a.name.localeCompare(b.name, 'es')),
-  })).filter((g) => g.items.length > 0);
+  const supermarketOrder: Array<string | null> = [...SUPERMARKETS.map((s) => s.id), null];
+  const groups: ShoppingGroup[] = supermarketOrder
+    .map((sm) => ({
+      supermarket: sm,
+      label: SUPERMARKETS.find((s) => s.id === sm)?.label ?? 'Sin asignar',
+      items: visible
+        .filter((i) => (i.supermarket ?? null) === sm)
+        .sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return groups;
 }
@@ -139,7 +146,7 @@ function roundForDisplay(n: number): number {
 export function shoppingListToText(groups: ShoppingGroup[]): string {
   const lines: string[] = [];
   for (const g of groups) {
-    lines.push(`# ${g.category.toUpperCase()}`);
+    lines.push(`# ${g.label.toUpperCase()}`);
     for (const item of g.items) {
       const qty = item.quantity != null && item.unit ? `${item.quantity} ${item.unit} ` : '';
       lines.push(`- [${item.checked ? 'x' : ' '}] ${qty}${item.name}`);

@@ -16,24 +16,42 @@ interface RecipeRow {
   created_at: string;
 }
 
+function getTagsForRecipe(id: number): string[] {
+  return (db.prepare('SELECT tag FROM recipe_tags WHERE recipe_id = ? ORDER BY tag').all(id) as { tag: string }[]).map(
+    (r) => r.tag,
+  );
+}
+
 function rowToRecipe(r: RecipeRow): Recipe {
   return {
     ...r,
     is_favorite: !!r.is_favorite,
     category: r.category as Recipe['category'],
+    tags: getTagsForRecipe(r.id),
   };
 }
 
-export function listRecipes(opts: { search?: string; category?: string; favoritesOnly?: boolean } = {}): Recipe[] {
+function replaceTags(recipeId: number, tags: string[]) {
+  db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(recipeId);
+  const insert = db.prepare('INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)');
+  for (const tag of new Set(tags)) {
+    insert.run(recipeId, tag);
+  }
+}
+
+export function listRecipes(opts: { search?: string; tags?: string[]; favoritesOnly?: boolean } = {}): Recipe[] {
   const where: string[] = [];
   const params: unknown[] = [];
   if (opts.search) {
     where.push('LOWER(name) LIKE ?');
     params.push(`%${opts.search.toLowerCase()}%`);
   }
-  if (opts.category) {
-    where.push('category = ?');
-    params.push(opts.category);
+  if (opts.tags && opts.tags.length > 0) {
+    const placeholders = opts.tags.map(() => '?').join(',');
+    where.push(
+      `id IN (SELECT recipe_id FROM recipe_tags WHERE tag IN (${placeholders}) GROUP BY recipe_id HAVING COUNT(DISTINCT tag) = ?)`,
+    );
+    params.push(...opts.tags, opts.tags.length);
   }
   if (opts.favoritesOnly) where.push('is_favorite = 1');
   const sql =
@@ -48,7 +66,7 @@ export function getRecipe(id: number): RecipeWithIngredients | null {
   if (!row) return null;
   const ings = db
     .prepare(
-      `SELECT ri.ingredient_id, i.name, ri.quantity, ri.unit, i.shopping_category
+      `SELECT ri.ingredient_id, i.name, ri.quantity, ri.unit, i.shopping_category, i.supermarket
        FROM recipe_ingredients ri JOIN ingredients i ON i.id = ri.ingredient_id
        WHERE ri.recipe_id = ? ORDER BY i.name`,
     )
@@ -77,12 +95,16 @@ export function createRecipe(input: RecipeInput): number {
     for (const ing of data.ingredients) {
       const ingId =
         ing.ingredient_id ??
-        findOrCreateIngredient(ing.name, ing.unit, ing.shopping_category ?? 'otros');
+        findOrCreateIngredient(ing.name, ing.unit, ing.shopping_category ?? 'otros', ing.supermarket);
+      if (ing.ingredient_id && ing.supermarket !== undefined) {
+        db.prepare('UPDATE ingredients SET supermarket = ? WHERE id = ?').run(ing.supermarket, ing.ingredient_id);
+      }
       db.prepare(
         `INSERT OR REPLACE INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
          VALUES (?, ?, ?, ?)`,
       ).run(recipeId, ingId, ing.quantity, ing.unit);
     }
+    replaceTags(recipeId, data.tags ?? []);
     return recipeId;
   });
   return tx(input);
@@ -109,12 +131,16 @@ export function updateRecipe(id: number, input: RecipeInput): void {
     for (const ing of data.ingredients) {
       const ingId =
         ing.ingredient_id ??
-        findOrCreateIngredient(ing.name, ing.unit, ing.shopping_category ?? 'otros');
+        findOrCreateIngredient(ing.name, ing.unit, ing.shopping_category ?? 'otros', ing.supermarket);
+      if (ing.ingredient_id && ing.supermarket !== undefined) {
+        db.prepare('UPDATE ingredients SET supermarket = ? WHERE id = ?').run(ing.supermarket, ing.ingredient_id);
+      }
       db.prepare(
         `INSERT OR REPLACE INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
          VALUES (?, ?, ?, ?)`,
       ).run(id, ingId, ing.quantity, ing.unit);
     }
+    replaceTags(id, data.tags ?? []);
   });
   tx(input);
 }
@@ -149,6 +175,9 @@ export function duplicateRecipe(id: number): number {
     db.prepare(
       `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
        SELECT ?, ingredient_id, quantity, unit FROM recipe_ingredients WHERE recipe_id = ?`,
+    ).run(newId, srcId);
+    db.prepare(
+      `INSERT INTO recipe_tags (recipe_id, tag) SELECT ?, tag FROM recipe_tags WHERE recipe_id = ?`,
     ).run(newId, srcId);
     return newId;
   });
