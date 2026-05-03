@@ -2,6 +2,8 @@ import { db } from './db';
 import { formatDate, getWeekDates } from './week';
 import { SHOPPING_CATEGORIES } from './shopping-types';
 import { SUPERMARKETS } from './supermarkets';
+import { PACKAGED_UNITS } from '@/types';
+import type { Unit } from '@/types';
 import type { ShoppingCategory, ShoppingGroup, ShoppingItem } from './shopping-types';
 
 export { SHOPPING_CATEGORIES };
@@ -20,6 +22,7 @@ interface IngRow {
   name: string;
   shopping_category: ShoppingCategory;
   supermarket: string | null;
+  is_pantry: number;
 }
 
 interface StateRow {
@@ -58,18 +61,22 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
     const ratio = meal.servings / meal.base_servings;
     const ings = db
       .prepare(
-        `SELECT ri.quantity, ri.unit, i.id, i.name, i.shopping_category, i.supermarket
+        `SELECT ri.quantity, ri.unit, i.id, i.name, i.shopping_category, i.supermarket, i.is_pantry
          FROM recipe_ingredients ri JOIN ingredients i ON i.id = ri.ingredient_id
          WHERE ri.recipe_id = ?`,
       )
       .all(meal.recipe_id) as IngRow[];
 
     for (const ing of ings) {
+      // Pantry staples (oil, salt, pepper) are part of the recipe but never
+      // sum into the shopping list — the user has them already.
+      if (ing.is_pantry) continue;
+
       const key = `${ing.id}-${ing.unit}`;
       const existing = totals.get(key);
       if (existing) {
         existing.quantityNumber += ing.quantity * ratio;
-        existing.quantity = roundForDisplay(existing.quantityNumber);
+        existing.quantity = quantizeForUnit(existing.quantityNumber, existing.unit as Unit);
       } else {
         const q = ing.quantity * ratio;
         totals.set(key, {
@@ -77,7 +84,7 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
           id: ing.id,
           ingredientId: ing.id,
           name: ing.name,
-          quantity: roundForDisplay(q),
+          quantity: quantizeForUnit(q, ing.unit as Unit),
           quantityNumber: q,
           unit: ing.unit,
           category: ing.shopping_category,
@@ -137,7 +144,12 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
   return groups;
 }
 
-function roundForDisplay(n: number): number {
+// For packaged units (lata, bandeja, bolsa, brick, paquete, ud, pieza, unidad)
+// the user buys whole packages, so totals round UP — buying 1.5 cans means
+// buying 2. For mass/volume (g, ml, kg, l) we just trim to a sensible
+// precision; rounding 49g up to 50g would make you buy a tiny extra package.
+function quantizeForUnit(n: number, unit: Unit): number {
+  if (PACKAGED_UNITS.has(unit)) return Math.ceil(n);
   if (n >= 10) return Math.round(n);
   if (n >= 1) return Math.round(n * 10) / 10;
   return Math.round(n * 100) / 100;
