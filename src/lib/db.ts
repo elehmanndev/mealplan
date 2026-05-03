@@ -4,6 +4,13 @@ import path from 'node:path';
 
 const globalForDb = globalThis as unknown as { db?: Database.Database };
 
+function getDb(): Database.Database {
+  if (globalForDb.db) return globalForDb.db;
+  const instance = init();
+  globalForDb.db = instance;
+  return instance;
+}
+
 function resolveProjectRoot(): string {
   return process.cwd();
 }
@@ -69,5 +76,9 @@ function init(): Database.Database {
   return instance;
 }
 
-export const db = globalForDb.db ?? init();
-if (process.env.NODE_ENV !== 'production') globalForDb.db = db;
+export const db = new Proxy({} as Database.Database, {
+  get(_target, prop, receiver) {
+    const value = Reflect.get(getDb(), prop, receiver);
+    return typeof value === 'function' ? value.bind(getDb()) : value;
+  },
+});

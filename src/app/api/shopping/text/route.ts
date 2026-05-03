@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { generateShoppingList, shoppingListToText } from '@/lib/shopping';
 import { getCurrentWeek } from '@/lib/week';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const weekParam = url.searchParams.get('week');
