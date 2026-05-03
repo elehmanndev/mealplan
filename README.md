@@ -42,19 +42,13 @@ docker compose up -d
 
 Container exposes 3000; compose maps it to 3001 on the host. SQLite file lives in the bind-mounted volume `/mnt/user/appdata/mealplan/data` (Unraid path — adjust for other hosts).
 
-## Deploy on Unraid
+## Deploy
 
-1. Create `/mnt/user/appdata/mealplan/data` on the array.
-2. Build and run via Docker Compose plugin, or push the image to a registry and pull from Unraid.
-3. Add a Proxy Host in NPM:
-   - Domain: `mealplan.elehmann.dev`
-   - Forward: `mealplan:3000` (on shared docker network with NPM)
-4. Cloudflare DNS: CNAME `mealplan` → tunnel hostname, **proxied (orange cloud)**.
-5. Cloudflare Zero Trust → Access → Applications → Self-hosted:
-   - Domain: `mealplan.elehmann.dev`
-   - Policy "Allow": Include → Emails → eric + partner
-   - IdPs: Google OAuth + One-Time PIN
-   - Session: 1 month
+**Live at `https://mealplan.elehmann.dev`** — Cloudflare Tunnel → `192.168.1.45:3004` on Unraid, Cloudflare Access in front (One-Time PIN, two-email allowlist).
+
+**Pushes to `main` auto-deploy** in ~50 seconds via the `mealplan-webhook` container on Unraid (HMAC-validated). Full pipeline doc + bootstrap + secret-rotation procedure in [docs/auto-deploy.md](docs/auto-deploy.md).
+
+For a one-off rebuild without going through GitHub: `ssh unraid 'cd /mnt/user/appdata/mealplan && docker compose up -d --build'`.
 
 ## Project map
 
