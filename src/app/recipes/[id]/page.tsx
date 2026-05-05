@@ -32,9 +32,7 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
           >
             <ArrowLeft size={22} />
           </Link>
-          <h1 className="flex-1 text-center text-base font-medium truncate px-2">
-            {recipe.name}
-          </h1>
+          <div className="flex-1" aria-hidden />
           <FavoriteToggle recipeId={recipe.id} initial={recipe.is_favorite} />
           <RecipeMenu recipeId={recipe.id} />
         </div>
@@ -44,7 +42,13 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
         <div className="text-7xl mb-4" aria-hidden="true">
           {recipe.emoji}
         </div>
-        <h2 className="text-2xl font-bold">{recipe.name}</h2>
+        <h1 className="text-2xl font-bold">{recipe.name}</h1>
+        {(recipe.prep_time_min != null || recipe.base_servings) && (
+          <p className="text-sm text-text-muted mt-1">
+            {recipe.prep_time_min != null ? `${recipe.prep_time_min} min · ` : ''}
+            {recipe.base_servings} pax
+          </p>
+        )}
         {recipe.tags.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2 mt-3 text-sm text-text-muted">
             {recipe.tags.map((tag) => (

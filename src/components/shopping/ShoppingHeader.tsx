@@ -26,8 +26,8 @@ export function ShoppingHeader({ week }: ShoppingHeaderProps) {
           <ChevronLeft size={22} />
         </Link>
 
-        <div className="flex-1 text-center text-base font-semibold truncate px-2">
-          Lista de compra — {formatWeekLabel(week)}
+        <div className="flex-1 text-center text-base font-semibold truncate px-2 tabular-nums">
+          {formatWeekLabel(week)}
         </div>
 
         <div className="flex items-center">

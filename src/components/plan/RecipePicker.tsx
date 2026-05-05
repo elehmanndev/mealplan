@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
 import { addToPlanAction } from '@/actions/plan';
 import { formatDate, formatDayLabel } from '@/lib/week';
+import { useToast } from '@/components/ui/Toast';
 import { RECIPE_TAGS, type Recipe, type Slot } from '@/types';
 
 interface RecipePickerProps {
@@ -20,6 +21,7 @@ interface RecipePickerProps {
 
 export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
   const router = useRouter();
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [favOnly, setFavOnly] = useState(false);
@@ -60,14 +62,18 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
   const handleAdd = () => {
     if (!selected) return;
     startTransition(async () => {
-      await addToPlanAction({
-        date: formatDate(date),
-        slot,
-        recipe_id: selected.id,
-        servings,
-      });
-      router.refresh();
-      handleClose();
+      try {
+        await addToPlanAction({
+          date: formatDate(date),
+          slot,
+          recipe_id: selected.id,
+          servings,
+        });
+        router.refresh();
+        handleClose();
+      } catch {
+        toast.show('No se pudo añadir', 'error');
+      }
     });
   };
 

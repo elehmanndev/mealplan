@@ -14,6 +14,7 @@ import {
   updatePlanServingsAction,
 } from '@/actions/plan';
 import { getCurrentWeek } from '@/lib/week';
+import { useToast } from '@/components/ui/Toast';
 import type { PlanEntry } from '@/types';
 import { DaySlotPicker } from './DaySlotPicker';
 
@@ -24,10 +25,11 @@ interface ContextMenuProps {
   week: string;
 }
 
-type Mode = 'menu' | 'servings' | 'move' | 'duplicate';
+type Mode = 'menu' | 'servings' | 'move' | 'duplicate' | 'confirm-delete';
 
 export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
   const router = useRouter();
+  const toast = useToast();
   const [mode, setMode] = useState<Mode>('menu');
   const [servings, setServings] = useState(entry.servings);
   const [isPending, startTransition] = useTransition();
@@ -43,34 +45,49 @@ export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
       return;
     }
     startTransition(async () => {
-      await updatePlanServingsAction(entry.id, servings);
-      router.refresh();
-      handleClose();
+      try {
+        await updatePlanServingsAction(entry.id, servings);
+        router.refresh();
+        handleClose();
+      } catch {
+        toast.show('No se pudo guardar', 'error');
+      }
     });
   };
 
   const handleMove = ({ date, slot }: { date: string; slot: PlanEntry['slot'] }) => {
     startTransition(async () => {
-      await movePlanEntryAction({ entry_id: entry.id, to_date: date, to_slot: slot });
-      router.refresh();
-      handleClose();
+      try {
+        await movePlanEntryAction({ entry_id: entry.id, to_date: date, to_slot: slot });
+        router.refresh();
+        handleClose();
+      } catch {
+        toast.show('No se pudo mover', 'error');
+      }
     });
   };
 
   const handleDuplicate = ({ date, slot }: { date: string; slot: PlanEntry['slot'] }) => {
     startTransition(async () => {
-      await duplicatePlanEntryAction({ entry_id: entry.id, to_date: date, to_slot: slot });
-      router.refresh();
-      handleClose();
+      try {
+        await duplicatePlanEntryAction({ entry_id: entry.id, to_date: date, to_slot: slot });
+        router.refresh();
+        handleClose();
+      } catch {
+        toast.show('No se pudo duplicar', 'error');
+      }
     });
   };
 
-  const handleDelete = () => {
-    if (!window.confirm('¿Eliminar del plan?')) return;
+  const handleDeleteConfirmed = () => {
     startTransition(async () => {
-      await removePlanEntryAction(entry.id);
-      router.refresh();
-      handleClose();
+      try {
+        await removePlanEntryAction(entry.id);
+        router.refresh();
+        handleClose();
+      } catch {
+        toast.show('No se pudo eliminar', 'error');
+      }
     });
   };
 
@@ -129,6 +146,32 @@ export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
             </Button>
           </div>
         </div>
+      ) : mode === 'confirm-delete' ? (
+        <div className="space-y-4">
+          <p className="text-text-muted">
+            ¿Eliminar <span className="text-text font-medium">{entry.recipe?.name ?? 'esta receta'}</span> del plan?
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="md"
+              fullWidth
+              onClick={() => setMode('menu')}
+              disabled={isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              fullWidth
+              onClick={handleDeleteConfirmed}
+              disabled={isPending}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
       ) : (
         <ul className="space-y-1">
           <li>
@@ -178,7 +221,7 @@ export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
           <li>
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setMode('confirm-delete')}
               disabled={isPending}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
             >

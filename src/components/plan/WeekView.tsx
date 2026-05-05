@@ -22,6 +22,7 @@ import {
   getWeekDates,
   isSameDay,
 } from '@/lib/week';
+import { useToast } from '@/components/ui/Toast';
 import type { PlanEntry, Slot } from '@/types';
 import { PlanSlot } from './PlanSlot';
 import { RecipePicker } from './RecipePicker';
@@ -41,6 +42,7 @@ const SLOTS: { slot: Slot; icon: string; label: string }[] = [
 
 export function WeekView({ week, entries }: WeekViewProps) {
   const router = useRouter();
+  const toast = useToast();
   const [, startTransition] = useTransition();
   const [localEntries, setLocalEntries] = useState<PlanEntry[]>(entries);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -108,6 +110,7 @@ export function WeekView({ week, entries }: WeekViewProps) {
         router.refresh();
       } catch {
         setLocalEntries(entries);
+        toast.show('No se pudo mover la receta', 'error');
       }
     });
   };

@@ -27,6 +27,10 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
   const [name, setName] = useState(initial?.name ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🍽️');
   const [baseServings, setBaseServings] = useState(initial?.base_servings ?? 2);
+  const [prepTime, setPrepTime] = useState<string>(
+    initial?.prep_time_min != null ? String(initial.prep_time_min) : '',
+  );
+  const [description, setDescription] = useState(initial?.description ?? '');
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [isFavorite, setIsFavorite] = useState(initial?.is_favorite ?? false);
@@ -53,13 +57,15 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
     const cleanIngredients = ingredients.filter(
       (i) => i.name.trim().length > 0 && i.quantity > 0,
     );
+    const trimmedPrep = prepTime.trim();
+    const parsedPrep = trimmedPrep ? Number(trimmedPrep) : NaN;
     const payload = {
       name: name.trim(),
-      description: null,
+      description: description.trim() ? description.trim() : null,
       emoji: emoji.trim() || '🍽️',
       base_servings: baseServings,
       category: null,
-      prep_time_min: null,
+      prep_time_min: Number.isFinite(parsedPrep) && parsedPrep >= 0 ? parsedPrep : null,
       notes: notes.trim() ? notes.trim() : null,
       is_favorite: isFavorite,
       ingredients: cleanIngredients,
@@ -138,6 +144,28 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
         <span className="text-sm text-text-muted">Comensales base</span>
         <Stepper value={baseServings} onChange={setBaseServings} min={1} max={20} />
       </div>
+
+      <label className="block">
+        <span className="text-sm text-text-muted">Tiempo de preparación (min)</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={prepTime}
+          onChange={(e) => setPrepTime(e.target.value.replace(/[^0-9]/g, ''))}
+          placeholder="20"
+          className={`${inputCls} mt-1`}
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm text-text-muted">Descripción</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Una breve descripción de la receta..."
+          className="bg-surface-2 rounded-xl px-4 py-3 w-full text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent mt-1 min-h-24"
+        />
+      </label>
 
       <label className="flex items-center justify-between bg-surface rounded-2xl px-4 h-14 cursor-pointer">
         <span className="font-medium">⭐ Favorita</span>
