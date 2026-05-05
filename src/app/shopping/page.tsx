@@ -5,13 +5,15 @@ import { ShoppingHeader } from '@/components/shopping/ShoppingHeader';
 import { ShoppingList } from '@/components/shopping/ShoppingList';
 import { AddExtraButton } from '@/components/shopping/AddExtraButton';
 
+export const dynamic = 'force-dynamic';
+
 interface ShoppingPageProps {
   searchParams: Promise<{ week?: string }>;
 }
 
 export default async function ShoppingPage({ searchParams }: ShoppingPageProps) {
   const params = await searchParams;
-  const week = params.week && /^\d{4}-W\d{2}$/.test(params.week) ? params.week : getCurrentWeek();
+  const week = params.week && /^\d{4}-\d{2}-\d{2}$/.test(params.week) ? params.week : getCurrentWeek();
   const groups = generateShoppingList(week);
 
   return (

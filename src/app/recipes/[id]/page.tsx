@@ -8,6 +8,8 @@ import { FavoriteToggle } from '@/components/recipes/FavoriteToggle';
 import { RecipeMenu } from '@/components/recipes/RecipeMenu';
 import { RecipeDetailClient } from '@/components/recipes/RecipeDetailClient';
 
+export const dynamic = 'force-dynamic';
+
 interface RecipeDetailPageProps {
   params: Promise<{ id: string }>;
 }

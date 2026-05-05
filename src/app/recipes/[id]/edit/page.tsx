@@ -4,6 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import { getRecipe } from '@/models/recipe';
 import { RecipeForm } from '@/components/recipes/RecipeForm';
 
+export const dynamic = 'force-dynamic';
+
 interface EditRecipePageProps {
   params: Promise<{ id: string }>;
 }

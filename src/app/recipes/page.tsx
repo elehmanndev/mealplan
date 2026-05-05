@@ -6,6 +6,8 @@ import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
 
+export const dynamic = 'force-dynamic';
+
 interface RecipesPageProps {
   searchParams: Promise<{ q?: string; tags?: string; fav?: string }>;
 }

@@ -12,6 +12,9 @@ interface WeekNavProps {
 const iconBtn =
   'w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-2 text-text shrink-0';
 
+const navBtn =
+  'w-11 h-11 flex items-center justify-center rounded-full bg-surface text-text shrink-0 active:scale-95 transition-transform';
+
 export function WeekNav({ week, onOpenActions }: WeekNavProps) {
   const prev = getPrevWeek(week);
   const next = getNextWeek(week);
@@ -29,11 +32,11 @@ export function WeekNav({ week, onOpenActions }: WeekNavProps) {
           <Home size={22} />
         </Link>
 
-        <div className="flex items-center justify-center gap-1">
-          <Link href={`/?week=${prev}`} aria-label="Semana anterior" className={iconBtn}>
-            <ChevronLeft size={22} />
+        <div className="flex items-center justify-center gap-2">
+          <Link href={`/?week=${prev}`} aria-label="Semana anterior" className={navBtn}>
+            <ChevronLeft size={24} />
           </Link>
-          <div className="flex items-center gap-2 min-w-[100px] justify-center">
+          <div className="flex items-center gap-2 min-w-[110px] justify-center">
             <span className="font-semibold text-base tabular-nums">{formatWeekLabel(week)}</span>
             {isCurrent ? (
               <span className="text-xs text-text-muted">Hoy</span>
@@ -46,8 +49,8 @@ export function WeekNav({ week, onOpenActions }: WeekNavProps) {
               </Link>
             )}
           </div>
-          <Link href={`/?week=${next}`} aria-label="Semana siguiente" className={iconBtn}>
-            <ChevronRight size={22} />
+          <Link href={`/?week=${next}`} aria-label="Semana siguiente" className={navBtn}>
+            <ChevronRight size={24} />
           </Link>
         </div>
 
