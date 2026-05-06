@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" fill="none">
+  <defs>
+    <linearGradient id="markBg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="0.55" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#A855F7"/>
+    </linearGradient>
+    <radialGradient id="markGlow" cx="0.18" cy="0.12" r="0.85" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g transform="translate(20 20)">
+    <rect width="100" height="100" rx="24" fill="url(#markBg)"/>
+    <rect width="100" height="100" rx="24" fill="url(#markGlow)"/>
+    <g transform="translate(20 20) scale(1.05)" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <rect x="6" y="11" width="38" height="41" rx="5"/>
+      <rect x="14" y="5" width="3" height="9" rx="1.5" fill="white" stroke="none"/>
+      <rect x="33" y="5" width="3" height="9" rx="1.5" fill="white" stroke="none"/>
+      <line x1="6" y1="20" x2="44" y2="20"/>
+      <rect x="12" y="26" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="19" y="26" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="26" y="26" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="33" y="26" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="12" y="33" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="19" y="33" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="26" y="33" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="12" y="40" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <rect x="19" y="40" width="3" height="3" rx="0.5" fill="white" stroke="none"/>
+      <circle cx="46" cy="44" r="14" fill="#7C3AED" stroke="white" stroke-width="2.5"/>
+      <g stroke-width="1.6">
+        <line x1="38" y1="37" x2="38" y2="42"/>
+        <line x1="41" y1="37" x2="41" y2="42"/>
+        <line x1="44" y1="37" x2="44" y2="42"/>
+        <line x1="41" y1="42" x2="41" y2="51"/>
+        <ellipse cx="51" cy="40" rx="2.2" ry="3.2"/>
+        <line x1="51" y1="43.2" x2="51" y2="51"/>
+      </g>
+    </g>
+  </g>
+
+  <text x="148" y="92"
+        font-family="Inter, 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="64"
+        font-weight="700"
+        letter-spacing="-2.5"
+        fill="#0F172A">MealPlan</text>
+</svg>
