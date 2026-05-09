@@ -210,6 +210,7 @@ interface ToolResult {
   alreadyExists?: { name: string };
   missing_fields?: string[];
   invalid_fields?: { path: string; reason: string }[];
+  ingredient_names?: string[];
   next_action?: string;
   error?: string;
 }
@@ -222,18 +223,20 @@ const FIELD_LABELS: Record<string, string> = {
   ingredients: 'la lista de ingredientes (con cantidad, unidad y supermercado para cada uno)',
 };
 
-function describeMissingField(path: string): string {
+function describeMissingField(path: string, ingredientNames?: string[]): string {
   if (FIELD_LABELS[path]) return FIELD_LABELS[path];
   const ingMatch = path.match(/^ingredients\[(\d+)\]\.(.+)$/);
   if (ingMatch) {
-    const idx = Number(ingMatch[1]) + 1;
+    const idx = Number(ingMatch[1]);
+    const name = ingredientNames?.[idx];
+    const label = name ? `**${name}**` : `ingrediente #${idx + 1}`;
     const sub = ingMatch[2];
-    if (sub === 'name') return `nombre del ingrediente #${idx}`;
-    if (sub === 'quantity') return `cantidad del ingrediente #${idx}`;
-    if (sub === 'unit') return `unidad del ingrediente #${idx}`;
+    if (sub === 'name') return `nombre de ${label}`;
+    if (sub === 'quantity') return `cantidad de ${label}`;
+    if (sub === 'unit') return `unidad de ${label}`;
     if (sub === 'supermarket')
-      return `supermercado del ingrediente #${idx} (uno de: ${SUPERMARKET_IDS.join(', ')})`;
-    return `${sub} del ingrediente #${idx}`;
+      return `supermercado de ${label} (uno de: ${SUPERMARKET_IDS.join(', ')})`;
+    return `${sub} de ${label}`;
   }
   return path;
 }
@@ -245,14 +248,15 @@ function topLevelKey(path: string): string {
 function buildUserQuestion(
   missing: string[],
   invalid: { path: string; reason: string }[],
+  ingredientNames?: string[],
 ): string | null {
   const userMissing = missing.filter((m) => !MODEL_FILLED_FIELDS.has(topLevelKey(m)));
   const userInvalid = invalid.filter((i) => !MODEL_FILLED_FIELDS.has(topLevelKey(i.path)));
   if (userMissing.length === 0 && userInvalid.length === 0) return null;
   const lines: string[] = ['Antes de guardar necesito un par de cosas:'];
-  for (const m of userMissing) lines.push(`- ${describeMissingField(m)}`);
+  for (const m of userMissing) lines.push(`- ${describeMissingField(m, ingredientNames)}`);
   for (const i of userInvalid) {
-    lines.push(`- ${describeMissingField(i.path)} — corrige: ${i.reason}`);
+    lines.push(`- ${describeMissingField(i.path, ingredientNames)} — corrige: ${i.reason}`);
   }
   return lines.join('\n');
 }
@@ -269,7 +273,7 @@ function buildNextAction(missing: string[], invalid: { path: string; reason: str
     );
   }
   if (missingUser.length) {
-    const items = missingUser.map(describeMissingField);
+    const items = missingUser.map((m) => describeMissingField(m));
     parts.push(
       `Pide al usuario, en UN solo mensaje con formato de lista de bullets, los siguientes datos: ${items.join('; ')}.`,
     );
@@ -293,7 +297,20 @@ function buildNextAction(missing: string[], invalid: { path: string; reason: str
   return parts.join(' ');
 }
 
+function extractIngredientNames(args: unknown): string[] {
+  if (!args || typeof args !== 'object') return [];
+  const ings = (args as { ingredients?: unknown }).ingredients;
+  if (!Array.isArray(ings)) return [];
+  return ings.map((ing) => {
+    if (ing && typeof ing === 'object' && typeof (ing as { name?: unknown }).name === 'string') {
+      return (ing as { name: string }).name;
+    }
+    return '';
+  });
+}
+
 function runSaveRecipeTool(args: unknown): ToolResult {
+  const ingredientNames = extractIngredientNames(args);
   const parsed = ChatRecipeSchema.safeParse(args ?? {});
   if (!parsed.success) {
     const missing: string[] = [];
@@ -316,6 +333,7 @@ function runSaveRecipeTool(args: unknown): ToolResult {
       ok: false,
       ...(missing.length ? { missing_fields: missing } : {}),
       ...(invalid.length ? { invalid_fields: invalid } : {}),
+      ...(ingredientNames.length ? { ingredient_names: ingredientNames } : {}),
       next_action: buildNextAction(missing, invalid),
     };
   }
@@ -494,7 +512,13 @@ export async function POST(request: Request) {
           // question and stop — don't burn another Gemini round just to verbalize it.
           const userQuestions = toolResults
             .map((r) =>
-              r.ok ? null : buildUserQuestion(r.missing_fields ?? [], r.invalid_fields ?? []),
+              r.ok
+                ? null
+                : buildUserQuestion(
+                    r.missing_fields ?? [],
+                    r.invalid_fields ?? [],
+                    r.ingredient_names,
+                  ),
             )
             .filter((q): q is string => q !== null);
           if (userQuestions.length > 0) {
