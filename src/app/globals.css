@@ -38,6 +38,16 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Hide scrollbars while keeping scroll functionality. Used inside scroll
+   containers (e.g. the chat list) where a visible track is just noise. */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/old Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari + Chromium */
+}
+
 html,
 body {
   background-color: rgb(var(--bg));

@@ -230,7 +230,7 @@ export function ChatPanel() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-3">
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
         <div className="mx-auto max-w-3xl flex flex-col gap-5 pb-2">
           {messages.map((m, i) => (
             <Message
