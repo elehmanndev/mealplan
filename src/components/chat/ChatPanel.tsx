@@ -5,23 +5,21 @@ import { Mic, Send, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/components/ui/Toast';
-
-interface RecipeRef {
-  id: number;
-  name: string;
-}
+import { RecipeDraftCard, type RecipeDraft } from '@/components/chat/RecipeDraftCard';
 
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;
-  createdRecipes?: RecipeRef[];
+  draft?: RecipeDraft;
+  draftStatus?: 'pending' | 'saving' | 'saved' | 'discarded';
+  draftSaved?: { id: number; name: string };
   skippedRecipes?: string[];
 }
 
 const WELCOME: ChatMessage = {
   role: 'model',
   content:
-    '¡Hola! Cuéntame una receta y la guardo en tu recetario. Por ejemplo: *lentejas con chorizo para 4 personas* o *ensalada de quinoa con aguacate*.',
+    '¡Hola! Cuéntame una receta y te propondré una versión lista para guardar. Por ejemplo: *lentejas con chorizo para 4 personas* o *ensalada de quinoa con aguacate*.',
 };
 
 export function ChatPanel() {
@@ -113,20 +111,16 @@ export function ChatPanel() {
           }
           return copy;
         });
-      } else if (ev.event === 'recipe_created') {
-        const recipe = data as unknown as RecipeRef;
+      } else if (ev.event === 'recipe_draft') {
+        const draft = data as unknown as RecipeDraft;
         setMessages((prev) => {
           const copy = [...prev];
           const last = copy[copy.length - 1];
           if (last?.role === 'model') {
-            copy[copy.length - 1] = {
-              ...last,
-              createdRecipes: [...(last.createdRecipes ?? []), recipe],
-            };
+            copy[copy.length - 1] = { ...last, draft, draftStatus: 'pending' };
           }
           return copy;
         });
-        toast.show(`Receta "${recipe.name}" guardada`, 'success');
       } else if (ev.event === 'recipe_skipped') {
         const name = String(data.name ?? '');
         setMessages((prev) => {
@@ -150,6 +144,83 @@ export function ChatPanel() {
     }
   }
 
+  async function saveDraft(messageIndex: number, edited: RecipeDraft) {
+    setMessages((prev) => {
+      const copy = [...prev];
+      const m = copy[messageIndex];
+      if (m) copy[messageIndex] = { ...m, draftStatus: 'saving' };
+      return copy;
+    });
+    try {
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipes: [edited] }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        imported?: number;
+        skipped?: string[];
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        toast.show(data.error ?? 'No se pudo guardar', 'error');
+        setMessages((prev) => {
+          const copy = [...prev];
+          const m = copy[messageIndex];
+          if (m) copy[messageIndex] = { ...m, draftStatus: 'pending' };
+          return copy;
+        });
+        return;
+      }
+      const created = data.imported && data.imported > 0;
+      if (!created) {
+        // dedup by name on the server side; treat as already-existing
+        toast.show(`"${edited.name}" ya existía`, 'info');
+        setMessages((prev) => {
+          const copy = [...prev];
+          const m = copy[messageIndex];
+          if (m) copy[messageIndex] = { ...m, draftStatus: 'discarded' };
+          return copy;
+        });
+        return;
+      }
+      // Look up the inserted recipe id (the import endpoint doesn't return it)
+      const idRes = await fetch(`/api/recipes?q=${encodeURIComponent(edited.name)}`);
+      const recipes = (await idRes.json().catch(() => [])) as { id: number; name: string }[];
+      const match = recipes.find(
+        (r) => r.name.toLowerCase() === edited.name.toLowerCase(),
+      );
+      const saved = match
+        ? { id: match.id, name: match.name }
+        : { id: 0, name: edited.name };
+      toast.show(`Receta "${edited.name}" guardada`, 'success');
+      setMessages((prev) => {
+        const copy = [...prev];
+        const m = copy[messageIndex];
+        if (m) copy[messageIndex] = { ...m, draftStatus: 'saved', draftSaved: saved };
+        return copy;
+      });
+    } catch {
+      toast.show('No se pudo guardar la receta', 'error');
+      setMessages((prev) => {
+        const copy = [...prev];
+        const m = copy[messageIndex];
+        if (m) copy[messageIndex] = { ...m, draftStatus: 'pending' };
+        return copy;
+      });
+    }
+  }
+
+  function discardDraft(messageIndex: number) {
+    setMessages((prev) => {
+      const copy = [...prev];
+      const m = copy[messageIndex];
+      if (m) copy[messageIndex] = { ...m, draftStatus: 'discarded' };
+      return copy;
+    });
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -162,7 +233,13 @@ export function ChatPanel() {
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
         <div className="mx-auto max-w-3xl flex flex-col gap-5 pb-2">
           {messages.map((m, i) => (
-            <Message key={i} message={m} streaming={busy && i === messages.length - 1} />
+            <Message
+              key={i}
+              message={m}
+              streaming={busy && i === messages.length - 1}
+              onSaveDraft={(edited) => saveDraft(i, edited)}
+              onDiscardDraft={() => discardDraft(i)}
+            />
           ))}
         </div>
       </div>
@@ -208,7 +285,17 @@ export function ChatPanel() {
   );
 }
 
-function Message({ message, streaming }: { message: ChatMessage; streaming: boolean }) {
+function Message({
+  message,
+  streaming,
+  onSaveDraft,
+  onDiscardDraft,
+}: {
+  message: ChatMessage;
+  streaming: boolean;
+  onSaveDraft: (edited: RecipeDraft) => void;
+  onDiscardDraft: () => void;
+}) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -219,48 +306,64 @@ function Message({ message, streaming }: { message: ChatMessage; streaming: bool
     );
   }
 
-  const empty = !message.content && (message.createdRecipes?.length ?? 0) === 0;
+  const showDraft = message.draft && message.draftStatus !== 'discarded';
+  const empty =
+    !message.content && (message.skippedRecipes?.length ?? 0) === 0 && !showDraft;
+
   return (
     <div className="text-text text-[15px] leading-relaxed">
       {empty && streaming ? (
         <ThinkingDots />
       ) : (
         <>
-          <div>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                a: (props) => (
-                  <a {...props} target="_blank" rel="noopener noreferrer" className="text-accent underline" />
-                ),
-                code: ({ children, ...props }) => (
-                  <code {...props} className="px-1 py-0.5 rounded bg-surface text-[0.9em] font-mono">
-                    {children}
-                  </code>
-                ),
-                ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
-                ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
-                p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
-                strong: ({ children }) => <strong className="font-semibold text-text">{children}</strong>,
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
-
-          {message.createdRecipes && message.createdRecipes.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {message.createdRecipes.map((r) => (
-                <a
-                  key={r.id}
-                  href={`/recipes/${r.id}`}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface text-text text-xs font-medium border border-border/50"
-                >
-                  ✓ {r.name}
-                </a>
-              ))}
+          {message.content && (
+            <div>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: (props) => (
+                    <a
+                      {...props}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent underline"
+                    />
+                  ),
+                  code: ({ children, ...props }) => (
+                    <code
+                      {...props}
+                      className="px-1 py-0.5 rounded bg-surface text-[0.9em] font-mono"
+                    >
+                      {children}
+                    </code>
+                  ),
+                  ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+                  p: ({ children }) => (
+                    <p className="my-2 first:mt-0 last:mb-0">{children}</p>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-text">{children}</strong>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
             </div>
           )}
+
+          {showDraft && message.draft && (
+            <div className="mt-3">
+              <RecipeDraftCard
+                draft={message.draft}
+                onSave={onSaveDraft}
+                onDiscard={onDiscardDraft}
+                saving={message.draftStatus === 'saving'}
+                saved={message.draftStatus === 'saved' ? message.draftSaved : undefined}
+              />
+            </div>
+          )}
+
           {message.skippedRecipes && message.skippedRecipes.length > 0 && (
             <div className="mt-2 text-xs text-text-muted">
               Ya existían: {message.skippedRecipes.join(', ')}

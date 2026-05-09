@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { RECIPE_CATEGORIES, RECIPE_TAGS, UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
 import { SUPERMARKETS } from '@/lib/supermarkets';
-import { importRecipes } from '@/lib/recipe-import';
+import { db } from '@/lib/db';
 import { checkAndIncrement, getClientIp, PER_IP_DAILY_CAP } from '@/lib/chat-rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -52,38 +52,10 @@ const ChatRecipeSchema = z
     tags: z.array(z.enum(RECIPE_TAGS)).optional(),
     ingredients: z.array(ChatIngredientSchema).min(1),
   })
-  .superRefine((data, ctx) => {
-    data.ingredients.forEach((ing, idx) => {
-      if (ing.is_pantry) return;
-      if (ing.quantity == null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.invalid_type,
-          expected: z.ZodParsedType.number,
-          received: z.ZodParsedType.undefined,
-          path: ['ingredients', idx, 'quantity'],
-          message: 'Required',
-        });
-      }
-      if (ing.unit == null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.invalid_type,
-          expected: z.ZodParsedType.string,
-          received: z.ZodParsedType.undefined,
-          path: ['ingredients', idx, 'unit'],
-          message: 'Required',
-        });
-      }
-      if (ing.supermarket == null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.invalid_type,
-          expected: z.ZodParsedType.string,
-          received: z.ZodParsedType.undefined,
-          path: ['ingredients', idx, 'supermarket'],
-          message: 'Required',
-        });
-      }
-    });
-  });
+  // Ingredient-level fields (quantity/unit/supermarket) are no longer required
+  // at the schema level — the model estimates everything based on recipe +
+  // servings, and any holes get safe server-side defaults at import time. The
+  // only field the user must ever provide is `servings`.
 
 const MODEL_FILLED_FIELDS = new Set([
   'name',
@@ -91,6 +63,9 @@ const MODEL_FILLED_FIELDS = new Set([
   'category',
   'description',
   'prep_time_min',
+  // Everything ingredient-related: model estimates quantities, units,
+  // supermarkets — user is never asked about ingredients.
+  'ingredients',
 ]);
 
 type ChatRecipeInput = z.infer<typeof ChatRecipeSchema>;
@@ -101,26 +76,23 @@ const SYSTEM_PROMPT = `Eres un asistente culinario de la app MealPlan. Hablas en
 
 Tu tarea es **guardar recetas en el recetario del usuario** llamando a la herramienta \`save_recipe\`. La herramienta es la que valida los datos: tú no decides si está completa, ella te lo dice.
 
-**REGLA DE ORO — TRES GRUPOS DE CAMPOS:**
+**REGLA DE ORO — TÚ RELLENAS PRÁCTICAMENTE TODO.** El único dato que pides al usuario si falta es \`servings\` (raciones). Lo demás lo estimas tú con criterio razonable y el usuario lo edita después si quiere.
 
-**Grupo A — TÚ rellenas siempre por tu cuenta** (NUNCA preguntes al usuario):
+**Lo que rellenas tú** (NUNCA preguntes):
 - \`name\`: normaliza/limpia lo que diga el usuario (ej. "fabada" → "Fabada Asturiana").
-- \`emoji\`: elige uno apropiado (🥗 ensalada, 🍝 pasta, 🍲 sopa, 🥘 guiso, 🐟 pescado, 🍗 pollo, 🍰 postre…). Siempre uno.
+- \`emoji\`: uno apropiado (🥗 ensalada, 🍝 pasta, 🍲 sopa, 🥘 guiso, 🐟 pescado, 🍗 pollo, 🍰 postre…).
 - \`category\`: dedúcela del tipo de plato.
-- \`description\`: redacta tú una descripción breve (1-2 frases) a partir del nombre/ingredientes.
-- \`prep_time_min\`: **estímalo tú** según el tipo de receta (ensalada ~15, pasta ~20, guiso ~45-60, asado ~60-90 min). Si el usuario lo dice explícitamente, úsalo; si no, no preguntes — pon una estimación razonable.
-- **Lista sugerida de ingredientes**: si el usuario solo te dio el nombre de la receta y no enumeró ingredientes, **sugiere tú una lista razonable de NOMBRES de ingredientes** (sin cantidades ni supermercados). El usuario revisará y aportará cantidades/supermercados.
+- \`description\`: una frase breve a partir del nombre/ingredientes.
+- \`prep_time_min\`: estímalo (ensalada ~15, pasta ~20, guiso 45-60, asado 60-90 min).
+- **Lista de ingredientes** completa con \`name\`, \`quantity\`, \`unit\`, \`supermarket\`, y opcionalmente \`shopping_category\`. Para cada ingrediente:
+  - \`quantity\` y \`unit\`: estima en función del plato y las raciones (proteínas ~150-200 g/persona, arroz seco ~80 g/persona, pasta seca ~80-100 g/persona, verdura ~150-200 g/persona, huevos por unidad…). No dejes ninguno vacío.
+  - \`supermarket\`: elige el más probable en España de la lista (${SUPERMARKET_IDS.join(', ')}). Para carne/pescado/embutido suele encajar **bon-area**; para producto fresco genérico **mercadona**; para productos puntuales (lácteos exóticos, congelados) **lidl** o **aldi**. Nunca lo dejes vacío en ingredientes no-pantry.
+  - Marca con \`is_pantry: true\` los básicos de despensa (aceite, sal, pimienta, especias, vinagre, ajo en polvo, azúcar, harina, agua…). Para estos no necesitas \`quantity\`/\`unit\`/\`supermarket\` — la app pone defaults.
 
-**Grupo B — DEBES preguntar al usuario** si faltan:
-- \`servings\` (raciones).
-- Para los ingredientes **NO de despensa**: \`quantity\`, \`unit\` y \`supermarket\`.
+**Lo que pide el usuario** (lo único):
+- \`servings\` — si no lo dijo, pregúntalo en una frase corta.
 
-**Grupo C — Ingredientes de despensa (\`is_pantry: true\`)**: aceite, sal, pimienta, especias, vinagre, ajo en polvo, azúcar, harina, agua, etc. Para estos:
-- Marca \`is_pantry: true\`.
-- **NO preguntes** cantidad, unidad ni supermercado — la app usa defaults sensatos.
-- Tú solo proporcionas el \`name\` y opcionalmente \`shopping_category\` (suele ser "despensa").
-
-**PROHIBIDO INVENTAR cantidades o supermercados** para ingredientes que NO sean de despensa. Solo el usuario los aporta.
+Si el usuario te corrige cualquier estimación tuya en un turno posterior (por ejemplo "no, salmón pongo solo 200g" o "ese ingrediente lo compro en lidl"), **mantén el resto de tu propuesta anterior** y aplica solo el cambio. No pierdas datos ya rellenados.
 
 **Flujo correcto:**
 1. Pregunta al usuario los datos básicos de la receta de forma natural.
@@ -204,9 +176,28 @@ function formatPath(path: (string | number)[]): string {
   return out;
 }
 
+export interface RecipeDraft {
+  name: string;
+  emoji?: string;
+  servings: number;
+  category?: (typeof RECIPE_CATEGORIES)[number];
+  prep_time_min?: number;
+  description?: string;
+  notes?: string;
+  tags?: (typeof RECIPE_TAGS)[number][];
+  ingredients: {
+    name: string;
+    quantity: number;
+    unit: (typeof UNITS)[number];
+    shopping_category?: (typeof SHOPPING_CATEGORIES)[number];
+    supermarket?: string | null;
+    is_pantry?: boolean;
+  }[];
+}
+
 interface ToolResult {
   ok: boolean;
-  created?: { id: number; name: string };
+  draft?: RecipeDraft;
   alreadyExists?: { name: string };
   missing_fields?: string[];
   invalid_fields?: { path: string; reason: string }[];
@@ -337,27 +328,32 @@ function runSaveRecipeTool(args: unknown): ToolResult {
       next_action: buildNextAction(missing, invalid),
     };
   }
-  try {
-    const data = parsed.data as ChatRecipeInput;
-    const importPayload = {
-      ...data,
-      ingredients: data.ingredients.map((ing) => ({
-        name: ing.name,
-        quantity: ing.quantity ?? 1,
-        unit: ing.unit ?? (ing.is_pantry ? PANTRY_DEFAULT_UNIT : 'ud'),
-        shopping_category: ing.shopping_category,
-        supermarket: ing.supermarket ?? null,
-        is_pantry: ing.is_pantry,
-      })),
-    };
-    const result = importRecipes([importPayload]);
-    if (result.imported === 0 && result.skipped.length > 0) {
-      return { ok: true, alreadyExists: { name: result.skipped[0] } };
-    }
-    return { ok: true, created: { id: result.insertedIds[0], name: data.name } };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'No se pudo guardar la receta' };
+  const data = parsed.data as ChatRecipeInput;
+  const existing = db
+    .prepare('SELECT name FROM recipes WHERE LOWER(name) = LOWER(?)')
+    .get(data.name.trim()) as { name: string } | undefined;
+  if (existing) {
+    return { ok: true, alreadyExists: { name: existing.name } };
   }
+  const draft: RecipeDraft = {
+    name: data.name.trim(),
+    emoji: data.emoji,
+    servings: data.servings,
+    category: data.category,
+    prep_time_min: data.prep_time_min,
+    description: data.description,
+    notes: data.notes,
+    tags: data.tags ?? [],
+    ingredients: data.ingredients.map((ing) => ({
+      name: ing.name,
+      quantity: ing.quantity ?? 1,
+      unit: ing.unit ?? (ing.is_pantry ? PANTRY_DEFAULT_UNIT : 'ud'),
+      shopping_category: ing.shopping_category,
+      supermarket: ing.supermarket ?? null,
+      is_pantry: !!ing.is_pantry,
+    })),
+  };
+  return { ok: true, draft };
 }
 
 function sseEvent(event: string, data: unknown): string {
@@ -415,7 +411,7 @@ export async function POST(request: Request) {
 
       try {
         let totalTextStreamed = 0;
-        const recipesCreatedNames: string[] = [];
+        let draftEmitted = false;
         const recipesSkippedNames: string[] = [];
         let lastValidationFailedModelDomain = false;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -484,9 +480,9 @@ export async function POST(request: Request) {
             }
             const result = runSaveRecipeTool(call.args);
             toolResults.push(result);
-            if (result.created) {
-              send('recipe_created', result.created);
-              recipesCreatedNames.push(result.created.name);
+            if (result.draft) {
+              send('recipe_draft', result.draft);
+              draftEmitted = true;
             } else if (result.alreadyExists) {
               send('recipe_skipped', { name: result.alreadyExists.name });
               recipesSkippedNames.push(result.alreadyExists.name);
@@ -528,15 +524,15 @@ export async function POST(request: Request) {
             break;
           }
 
-          // If a recipe was just saved or skipped, short-circuit with a deterministic
-          // confirmation — don't burn a Gemini round in AUTO mode that often produces
-          // no text on Flash-Lite.
+          // If a draft was emitted or a recipe is duplicate, short-circuit with a
+          // deterministic confirmation — don't burn a Gemini round in AUTO mode
+          // that often produces no text on Flash-Lite.
           const anySuccess = toolResults.some((r) => r.ok);
           if (anySuccess) {
             const parts: string[] = [];
-            if (recipesCreatedNames.length) {
+            if (draftEmitted) {
               parts.push(
-                `¡Listo! He guardado **${recipesCreatedNames.join('**, **')}** en tu recetario.`,
+                'Aquí tienes la receta. Revísala, edita lo que quieras y pulsa **Guardar**.',
               );
             }
             if (recipesSkippedNames.length) {
@@ -553,7 +549,7 @@ export async function POST(request: Request) {
 
         if (totalTextStreamed === 0) {
           const fallback = lastValidationFailedModelDomain
-            ? 'Algo no me ha cuadrado por dentro al guardar la receta. ¿Podrías volver a contarme los datos?'
+            ? 'Algo no me ha cuadrado por dentro al preparar la receta. ¿Podrías volver a contarme los datos?'
             : 'Listo.';
           send('text', { delta: fallback });
         }
