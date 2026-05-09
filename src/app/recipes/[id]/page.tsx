@@ -42,7 +42,9 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
         <div className="text-7xl mb-4" aria-hidden="true">
           {recipe.emoji}
         </div>
-        <h1 className="text-2xl font-bold">{recipe.name}</h1>
+        <h1 className="text-2xl font-bold leading-tight tracking-tight line-clamp-2 px-2">
+          {recipe.name}
+        </h1>
         {(recipe.prep_time_min != null || recipe.base_servings) && (
           <p className="text-sm text-text-muted mt-1">
             {recipe.prep_time_min != null ? `${recipe.prep_time_min} min · ` : ''}

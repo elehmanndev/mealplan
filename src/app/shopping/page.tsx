@@ -1,3 +1,4 @@
+import { ShoppingCart } from 'lucide-react';
 import { generateShoppingList } from '@/lib/shopping';
 import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
@@ -22,8 +23,17 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
 
       <div className="px-4 pt-4">
         {groups.length === 0 ? (
-          <div className="text-center text-text-muted py-16 px-6">
-            No hay nada en la lista esta semana. Añade comidas al plan o un item con +.
+          <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+            <div
+              className="w-16 h-16 rounded-2xl bg-surface flex items-center justify-center mb-4 text-text-muted/50"
+              aria-hidden="true"
+            >
+              <ShoppingCart size={28} strokeWidth={1.75} />
+            </div>
+            <p className="text-text font-medium text-sm">Lista vacía</p>
+            <p className="text-text-muted text-xs mt-1 max-w-[260px] leading-relaxed">
+              Añade comidas al plan o un item suelto con el botón <span className="text-accent">+</span>.
+            </p>
           </div>
         ) : (
           <ShoppingList groups={groups} week={week} />

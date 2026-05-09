@@ -38,7 +38,12 @@ export function FavoriteToggle({ recipeId, initial }: FavoriteToggleProps) {
     >
       <Star
         size={22}
-        className={favorite ? 'fill-favorite text-favorite' : 'text-text-muted'}
+        strokeWidth={favorite ? 1.75 : 2.25}
+        className={
+          favorite
+            ? 'fill-favorite text-favorite drop-shadow-[0_1px_2px_rgba(250,204,21,0.35)]'
+            : 'text-text-muted/70'
+        }
       />
     </button>
   );

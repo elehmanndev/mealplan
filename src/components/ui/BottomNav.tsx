@@ -48,7 +48,7 @@ export function BottomNav({ currentWeek }: { currentWeek?: string }) {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 glass-bottom safe-bottom">
-      <ul className="flex">
+      <ul className="flex mx-auto max-w-3xl">
         {items.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
