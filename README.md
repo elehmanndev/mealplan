@@ -49,9 +49,13 @@ Re-run after editing the SVG. Wordmark renders client-side from `src/components/
 
 ### Recipe import format
 
-`POST /api/import` accepts three shapes (zod union): a single recipe object, an array of recipes, or `{ "recipes": [...] }`. Recipes whose name (case-insensitive) already exists are skipped. Ingredients are looked up by lowercase name (`findOrCreateIngredient`) so they're never duplicated. Missing optional fields fall back to sensible defaults (`emoji: '🍽️'`, `servings: 2`, `shopping_category: 'otros'`).
+`POST /api/import` accepts three shapes (zod union): a single recipe object, an array of recipes, or `{ "recipes": [...] }`. Recipes whose name (case-insensitive) already exists are skipped. Ingredients are looked up by lowercase name (`findOrCreateIngredient`) so they're never duplicated. Missing optional fields fall back to sensible defaults (`emoji: '🍽️'`, `servings: 2`, `shopping_category: 'otros'`). The route also tolerates smart quotes (`"` `"`) and ` ```json ` fences before parsing.
 
 The import sheet has a "Copiar prompt para ChatGPT" button — copies a Spanish prompt enumerating every valid `unit`, `category`, `shopping_category`, `tag`, and `supermarket` value, so ChatGPT produces directly importable JSON. See `CHATGPT_PROMPT` in [src/components/settings/DataActions.tsx](src/components/settings/DataActions.tsx).
+
+## Chat assistant
+
+`/chat` is a Gemini-powered conversational UI for adding recipes in natural Spanish. The assistant fills `name`/`emoji`/`category`/`description` itself and asks the user only for `servings`, `prep_time_min`, and per-ingredient quantity/unit/supermarket. Pantry items (oil, salt, spices) get the `al_gusto` unit and are excluded from shopping aggregation. Streaming SSE, markdown rendering, mic button as a hint to the keyboard's native dictation. Requires `GEMINI_API_KEY` env var. Full design + ops doc in [docs/chat-assistant.md](docs/chat-assistant.md).
 
 ## Production build / Docker
 
