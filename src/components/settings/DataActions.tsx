@@ -5,6 +5,7 @@ import { Check, Copy, Download, Upload } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { sanitizeJsonText } from '@/lib/sanitize-json';
 
 const EXAMPLE_JSON = `{
   "recipes": [
@@ -24,7 +25,7 @@ const EXAMPLE_JSON = `{
   ]
 }`;
 
-const CHATGPT_PROMPT = `Busca en tu memoria y en nuestras conversaciones anteriores todas las recetas que hayamos hablado o que sepas que cocino. Conviértelas a este formato JSON y devuélveme SOLO el JSON, sin markdown ni explicaciones.
+const CHATGPT_PROMPT = `Busca en tu memoria y en nuestras conversaciones anteriores todas las recetas que hayamos hablado o que sepas que cocino. Conviértelas a este formato JSON y devuélveme SOLO el JSON, sin markdown, sin bloques de código y sin explicaciones. Usa comillas dobles rectas ("), nunca comillas tipográficas (" ").
 
 Si algún ingrediente lo compro en un supermercado que no esté en la lista permitida (mercadona, lidl, bon-area, aldi), NO inventes ni mapees: pregúntame antes a qué supermercado de la lista debería asignarlo.
 
@@ -106,11 +107,12 @@ export function DataActions() {
   }
 
   async function submit() {
-    const body = text.trim();
-    if (!body) {
+    const trimmed = text.trim();
+    if (!trimmed) {
       toast.show('Pega el JSON antes de importar', 'error');
       return;
     }
+    const body = sanitizeJsonText(trimmed);
     try {
       JSON.parse(body);
     } catch {
@@ -210,6 +212,9 @@ export function DataActions() {
               onChange={(e) => setText(e.target.value)}
               placeholder={'{\n  "recipes": [ … ]\n}'}
               spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              autoComplete="off"
               className="w-full h-48 bg-surface rounded-xl px-3 py-2 text-sm font-mono text-text placeholder:text-text-muted/40 outline-none focus:ring-2 focus:ring-accent/50"
             />
             <p className="text-xs text-text-muted px-1">

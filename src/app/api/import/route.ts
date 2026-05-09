@@ -5,6 +5,7 @@ import { findOrCreateIngredient } from '@/models/ingredient';
 import { RECIPE_CATEGORIES, RECIPE_TAGS, UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
 import { SUPERMARKETS } from '@/lib/supermarkets';
+import { sanitizeJsonText } from '@/lib/sanitize-json';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,8 @@ function normalize(payload: z.infer<typeof PayloadSchema>): RecipeInput[] {
 export async function POST(request: Request) {
   let json: unknown;
   try {
-    json = await request.json();
+    const raw = await request.text();
+    json = JSON.parse(sanitizeJsonText(raw));
   } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
