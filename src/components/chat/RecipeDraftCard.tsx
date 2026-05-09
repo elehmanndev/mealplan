@@ -34,8 +34,6 @@ interface Props {
   saved?: { id: number; name: string };
 }
 
-// Smart step size depending on the current value + unit. Aim is taps,
-// not typing — so the stepper resolves to the next sensible portion.
 function stepFor(quantity: number, unit: string): number {
   if (unit === 'g' || unit === 'ml') {
     if (quantity >= 500) return 100;
@@ -53,7 +51,6 @@ function formatQty(n: number): string {
   return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-// Tap on supermarket chip cycles through: current → next → ... → null → first.
 const SUPERMARKET_CYCLE: (string | null)[] = [...SUPERMARKETS.map((s) => s.id), null];
 function nextSupermarket(current: string | null | undefined): string | null {
   const idx = SUPERMARKET_CYCLE.indexOf(current ?? null);
@@ -65,16 +62,18 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
 
   if (saved) {
     return (
-      <div className="border border-border/50 rounded-2xl px-4 py-3 bg-surface flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="shrink-0 text-lg">{draft.emoji ?? '🍽️'}</span>
+      <div
+        className="rounded-3xl px-4 py-3 bg-surface/80 backdrop-blur-md flex items-center justify-between gap-3 border border-border/30 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="shrink-0 text-xl leading-none">{draft.emoji ?? '🍽️'}</span>
           <span className="truncate text-text font-medium">{saved.name}</span>
         </div>
         <a
           href={`/recipes/${saved.id}`}
-          className="shrink-0 text-xs text-accent font-medium underline"
+          className="shrink-0 text-xs text-accent font-semibold tracking-tight"
         >
-          Ver receta
+          Ver receta →
         </a>
       </div>
     );
@@ -109,54 +108,71 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
   const pantry = ingredients.filter((ing) => ing.is_pantry);
 
   return (
-    <div className="border border-border/60 rounded-2xl bg-surface overflow-hidden">
-      <header className="px-4 pt-3 pb-1 flex items-center gap-3">
-        <span className="text-2xl shrink-0">{draft.emoji ?? '🍽️'}</span>
+    <div
+      className="rounded-3xl bg-surface/90 backdrop-blur-xl border border-border/30 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_-8px_rgba(0,0,0,0.18)]"
+    >
+      <header className="px-5 pt-4 pb-3 flex items-center gap-3.5">
+        <span className="text-3xl leading-none shrink-0">{draft.emoji ?? '🍽️'}</span>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-text leading-snug truncate">{draft.name}</h3>
-          <div className="text-[11px] text-text-muted mt-0.5 flex flex-wrap gap-x-1.5">
+          <h3 className="text-[15px] font-semibold text-text leading-tight tracking-tight truncate">
+            {draft.name}
+          </h3>
+          <div className="text-[11px] text-text-muted/80 mt-1 flex items-center gap-1 tracking-tight">
             <span>{draft.servings} pax</span>
-            {draft.prep_time_min ? <span>· {draft.prep_time_min} min</span> : null}
-            {draft.category ? <span>· {draft.category}</span> : null}
+            {draft.prep_time_min ? (
+              <>
+                <span className="opacity-50">•</span>
+                <span>{draft.prep_time_min} min</span>
+              </>
+            ) : null}
+            {draft.category ? (
+              <>
+                <span className="opacity-50">•</span>
+                <span className="capitalize">{draft.category}</span>
+              </>
+            ) : null}
           </div>
         </div>
       </header>
 
-      <ul className="px-3 py-2 flex flex-col gap-1.5">
+      <ul className="px-3 flex flex-col gap-1">
         {nonPantry.map(({ ing, i }) => {
           const sm = SUPERMARKETS.find((s) => s.id === ing.supermarket);
           return (
-            <li key={i} className="bg-bg/40 rounded-xl px-2.5 py-2 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-text font-medium truncate flex-1">
+            <li
+              key={i}
+              className="rounded-2xl px-3 py-2.5 bg-bg/50 border border-border/20 transition-all"
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-[13px] text-text font-medium truncate flex-1 tracking-tight">
                   {ing.name}
                 </span>
                 <button
                   type="button"
                   onClick={() => removeIngredient(i)}
                   aria-label={`Quitar ${ing.name}`}
-                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/70 hover:text-red-400 active:scale-90 transition-transform flex items-center justify-center"
+                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/50 hover:text-red-400 active:scale-90 transition-all flex items-center justify-center"
                 >
-                  <X size={12} />
+                  <X size={11} strokeWidth={2.5} />
                 </button>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => bumpQuantity(i, -1)}
-                  aria-label="Bajar cantidad"
-                  className="w-7 h-7 rounded-full bg-surface text-text active:scale-90 transition-transform flex items-center justify-center"
+                  aria-label="Bajar"
+                  className="w-7 h-7 rounded-full bg-surface text-text active:scale-90 transition-all flex items-center justify-center shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.08)]"
                 >
-                  <Minus size={12} />
+                  <Minus size={11} strokeWidth={2.5} />
                 </button>
-                <span className="text-sm text-text tabular-nums w-10 text-center">
+                <span className="text-[13px] text-text font-medium tabular-nums w-8 text-center">
                   {formatQty(ing.quantity)}
                 </span>
                 <select
                   value={ing.unit}
                   onChange={(e) => patchIngredient(i, { unit: e.target.value as Unit })}
                   aria-label={`Unidad de ${ing.name}`}
-                  className="bg-transparent text-text-muted text-xs outline-none -ml-0.5"
+                  className="bg-transparent text-text-muted/80 text-[11px] outline-none -ml-1 mr-0.5 appearance-none cursor-pointer hover:text-text transition-colors"
                 >
                   {UNITS.map((u) => (
                     <option key={u} value={u}>
@@ -167,21 +183,25 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
                 <button
                   type="button"
                   onClick={() => bumpQuantity(i, 1)}
-                  aria-label="Subir cantidad"
-                  className="w-7 h-7 rounded-full bg-surface text-text active:scale-90 transition-transform flex items-center justify-center"
+                  aria-label="Subir"
+                  className="w-7 h-7 rounded-full bg-surface text-text active:scale-90 transition-all flex items-center justify-center shadow-[inset_0_0_0_0.5px_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.08)]"
                 >
-                  <Plus size={12} />
+                  <Plus size={11} strokeWidth={2.5} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => patchIngredient(i, { supermarket: nextSupermarket(ing.supermarket) })}
-                  aria-label={`Supermercado de ${ing.name}: ${sm?.label ?? 'sin asignar'}`}
+                  onClick={() =>
+                    patchIngredient(i, { supermarket: nextSupermarket(ing.supermarket) })
+                  }
+                  aria-label={`Supermercado: ${sm?.label ?? 'sin asignar'} (toca para cambiar)`}
                   className={[
-                    'ml-auto px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all active:scale-95',
-                    sm ? sm.pillClass : 'bg-surface text-text-muted border border-border/40',
+                    'ml-auto px-2.5 h-7 rounded-full text-[11px] font-semibold tracking-tight transition-all active:scale-95 flex items-center',
+                    sm
+                      ? `${sm.pillClass} shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]`
+                      : 'bg-surface text-text-muted/70 border border-border/30',
                   ].join(' ')}
                 >
-                  {sm?.label ?? '—'}
+                  {sm?.label ?? 'Sin super'}
                 </button>
               </div>
             </li>
@@ -190,30 +210,32 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
       </ul>
 
       {pantry.length > 0 && (
-        <div className="px-4 pb-2 -mt-1 text-[11px] text-text-muted">
-          <span className="uppercase tracking-wide text-text-muted/70">Despensa:</span>{' '}
-          {pantry.map((p) => p.name).join(' · ')}
+        <div className="px-5 pt-2 pb-1 text-[10.5px] text-text-muted/70 leading-relaxed tracking-tight">
+          <span className="uppercase tracking-[0.08em] text-text-muted/50 font-medium">
+            Despensa
+          </span>{' '}
+          · {pantry.map((p) => p.name).join(' · ')}
         </div>
       )}
 
-      <footer className="px-3 pt-2 pb-3 flex gap-2 border-t border-border/40 bg-bg/30">
+      <footer className="px-3 pt-3 pb-3 flex gap-2 mt-2 border-t border-border/20">
         <button
           type="button"
           onClick={onDiscard}
           disabled={saving}
-          className="flex-1 h-10 rounded-xl bg-surface text-text-muted text-sm font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform disabled:opacity-40"
+          className="flex-1 h-11 rounded-2xl text-text-muted text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-40 hover:bg-bg/40"
         >
-          <X size={14} />
+          <X size={13} strokeWidth={2.5} />
           Descartar
         </button>
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="flex-1 h-10 rounded-xl bg-accent text-white text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-transform disabled:opacity-60"
+          className="flex-[1.5] h-11 rounded-2xl bg-accent text-white text-[13px] font-semibold tracking-tight flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-60 shadow-[0_4px_14px_-2px_rgba(96,142,255,0.45)]"
         >
-          <Check size={14} />
-          {saving ? 'Guardando…' : 'Guardar'}
+          <Check size={14} strokeWidth={2.75} />
+          {saving ? 'Guardando…' : 'Guardar receta'}
         </button>
       </footer>
     </div>

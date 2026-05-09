@@ -13,7 +13,7 @@ import { checkAndIncrement, getClientIp, PER_IP_DAILY_CAP } from '@/lib/chat-rat
 
 export const dynamic = 'force-dynamic';
 
-const MODEL = 'gemini-2.5-flash-lite';
+const MODEL = 'gemini-2.5-flash';
 const MAX_TOOL_ROUNDS = 2;
 const PER_STREAM_TIMEOUT_MS = 25000;
 
