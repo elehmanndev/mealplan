@@ -46,7 +46,7 @@ const ChatRecipeSchema = z
     emoji: z.string().min(1).optional(),
     servings: z.number().int().positive(),
     category: z.enum(RECIPE_CATEGORIES).optional(),
-    prep_time_min: z.number().int().positive(),
+    prep_time_min: z.number().int().positive().optional(),
     description: z.string().min(1).optional(),
     notes: z.string().optional(),
     tags: z.array(z.enum(RECIPE_TAGS)).optional(),
@@ -85,7 +85,13 @@ const ChatRecipeSchema = z
     });
   });
 
-const MODEL_FILLED_FIELDS = new Set(['name', 'emoji', 'category', 'description']);
+const MODEL_FILLED_FIELDS = new Set([
+  'name',
+  'emoji',
+  'category',
+  'description',
+  'prep_time_min',
+]);
 
 type ChatRecipeInput = z.infer<typeof ChatRecipeSchema>;
 
@@ -102,11 +108,11 @@ Tu tarea es **guardar recetas en el recetario del usuario** llamando a la herram
 - \`emoji\`: elige uno apropiado (🥗 ensalada, 🍝 pasta, 🍲 sopa, 🥘 guiso, 🐟 pescado, 🍗 pollo, 🍰 postre…). Siempre uno.
 - \`category\`: dedúcela del tipo de plato.
 - \`description\`: redacta tú una descripción breve (1-2 frases) a partir del nombre/ingredientes.
+- \`prep_time_min\`: **estímalo tú** según el tipo de receta (ensalada ~15, pasta ~20, guiso ~45-60, asado ~60-90 min). Si el usuario lo dice explícitamente, úsalo; si no, no preguntes — pon una estimación razonable.
 - **Lista sugerida de ingredientes**: si el usuario solo te dio el nombre de la receta y no enumeró ingredientes, **sugiere tú una lista razonable de NOMBRES de ingredientes** (sin cantidades ni supermercados). El usuario revisará y aportará cantidades/supermercados.
 
 **Grupo B — DEBES preguntar al usuario** si faltan:
 - \`servings\` (raciones).
-- \`prep_time_min\` (tiempo de preparación).
 - Para los ingredientes **NO de despensa**: \`quantity\`, \`unit\` y \`supermarket\`.
 
 **Grupo C — Ingredientes de despensa (\`is_pantry: true\`)**: aceite, sal, pimienta, especias, vinagre, ajo en polvo, azúcar, harina, agua, etc. Para estos:
