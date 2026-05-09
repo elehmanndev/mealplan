@@ -24,7 +24,9 @@ const EXAMPLE_JSON = `{
   ]
 }`;
 
-const CHATGPT_PROMPT = `Quiero importar mis recetas a una app de planificación de comidas. Conviértelas a este formato JSON y devuélveme SOLO el JSON, sin markdown ni explicaciones.
+const CHATGPT_PROMPT = `Busca en tu memoria y en nuestras conversaciones anteriores todas las recetas que hayamos hablado o que sepas que cocino. Conviértelas a este formato JSON y devuélveme SOLO el JSON, sin markdown ni explicaciones.
+
+Si algún ingrediente lo compro en un supermercado que no esté en la lista permitida (mercadona, lidl, bon-area, aldi), NO inventes ni mapees: pregúntame antes a qué supermercado de la lista debería asignarlo.
 
 Esquema:
 {
@@ -42,15 +44,12 @@ Esquema:
           "quantity": 200,
           "unit": "uno de: g, kg, ml, l, ud, pieza, unidad, paquete, lata, bandeja, bolsa, brick, cucharada, cucharadita, pellizco, taza, diente",
           "shopping_category": "uno de: verduras, frutas, carne, pescado, lacteos, panaderia, despensa, congelado, bebidas, otros",
-          "supermarket": "uno de: mercadona, lidl, bon-area, aldi (omite si no sabes)"
+          "supermarket": "uno de: mercadona, lidl, bon-area, aldi (siempre uno; elige el más probable)"
         }
       ]
     }
   ]
-}
-
-Mis recetas:
-[pega tus recetas aquí]`;
+}`;
 
 export function DataActions() {
   const toast = useToast();
