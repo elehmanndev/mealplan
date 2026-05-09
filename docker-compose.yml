@@ -12,3 +12,7 @@ services:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/mealplan.db
       - TZ=Europe/Madrid
+      # Gemini API key for /chat. Set in /mnt/user/appdata/mealplan/.env on Unraid.
+      # docker compose auto-reads .env from the project dir; this line passes the
+      # value through to the container. Empty = chat route returns 500.
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
