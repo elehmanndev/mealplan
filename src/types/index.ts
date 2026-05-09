@@ -44,6 +44,9 @@ export const UNITS = [
   'pellizco',
   'taza',
   'diente',
+  // Pantry / "to taste" — for items where quantity isn't meaningful (oil, salt,
+  // pepper, spices). Renders as "al gusto" and ignored when summing the shopping list.
+  'al_gusto',
 ] as const;
 export type Unit = (typeof UNITS)[number];
 

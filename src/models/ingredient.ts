@@ -24,6 +24,7 @@ export function findOrCreateIngredient(
   defaultUnit: string,
   shoppingCategory: string,
   supermarket?: string | null,
+  isPantry?: boolean,
 ): number {
   const trimmed = name.trim();
   const existing = db
@@ -33,12 +34,15 @@ export function findOrCreateIngredient(
     if (supermarket !== undefined) {
       db.prepare('UPDATE ingredients SET supermarket = ? WHERE id = ?').run(supermarket, existing.id);
     }
+    if (isPantry === true) {
+      db.prepare('UPDATE ingredients SET is_pantry = 1 WHERE id = ?').run(existing.id);
+    }
     return existing.id;
   }
   const result = db
     .prepare(
-      'INSERT INTO ingredients (name, default_unit, shopping_category, supermarket) VALUES (?, ?, ?, ?)',
+      'INSERT INTO ingredients (name, default_unit, shopping_category, supermarket, is_pantry) VALUES (?, ?, ?, ?, ?)',
     )
-    .run(trimmed, defaultUnit, shoppingCategory, supermarket ?? null);
+    .run(trimmed, defaultUnit, shoppingCategory, supermarket ?? null, isPantry ? 1 : 0);
   return Number(result.lastInsertRowid);
 }

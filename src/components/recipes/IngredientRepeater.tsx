@@ -192,7 +192,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
         >
           {UNITS.map((u) => (
             <option key={u} value={u}>
-              {u}
+              {u === 'al_gusto' ? 'al gusto' : u}
             </option>
           ))}
         </select>

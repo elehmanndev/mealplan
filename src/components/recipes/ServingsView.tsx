@@ -2,7 +2,7 @@
 
 import type { RecipeWithIngredients } from '@/types';
 import { Stepper } from '@/components/ui/Stepper';
-import { formatQuantity, scaleQuantity } from '@/lib/scale';
+import { formatAmount, scaleQuantity } from '@/lib/scale';
 
 interface ServingsViewProps {
   recipe: RecipeWithIngredients;
@@ -26,16 +26,19 @@ export function ServingsView({ recipe, servings, setServings }: ServingsViewProp
       {recipe.ingredients.length > 0 ? (
         <ul className="space-y-2 mt-4">
           {recipe.ingredients.map((ing) => {
-            const q = scaleQuantity(ing.quantity, recipe.base_servings, servings);
+            const q =
+              ing.unit === 'al_gusto'
+                ? ing.quantity
+                : scaleQuantity(ing.quantity, recipe.base_servings, servings);
             return (
               <li
                 key={ing.ingredient_id}
                 className="flex justify-between items-baseline gap-3 px-4 py-3 bg-surface rounded-xl"
               >
-                <span className="font-semibold tabular-nums">
-                  {formatQuantity(q)} {ing.unit}
+                <span className="font-medium text-text">{ing.name}</span>
+                <span className="text-text-muted tabular-nums text-right">
+                  {formatAmount(q, ing.unit)}
                 </span>
-                <span className="text-text-muted text-right">{ing.name}</span>
               </li>
             );
           })}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, BookOpen, ShoppingCart, Settings } from 'lucide-react';
+import { Calendar, BookOpen, ShoppingCart, Settings, Sparkles } from 'lucide-react';
 
 interface NavItem {
   href: string;
@@ -31,6 +31,12 @@ export function BottomNav({ currentWeek }: { currentWeek?: string }) {
       label: 'Lista',
       icon: ShoppingCart,
       match: (p) => p.startsWith('/shopping'),
+    },
+    {
+      href: '/chat',
+      label: 'Chat',
+      icon: Sparkles,
+      match: (p) => p.startsWith('/chat'),
     },
     {
       href: '/settings',

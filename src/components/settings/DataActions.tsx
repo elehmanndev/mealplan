@@ -43,7 +43,7 @@ Esquema:
         {
           "name": "Ingrediente",
           "quantity": 200,
-          "unit": "uno de: g, kg, ml, l, ud, pieza, unidad, paquete, lata, bandeja, bolsa, brick, cucharada, cucharadita, pellizco, taza, diente",
+          "unit": "uno de: g, kg, ml, l, ud, pieza, unidad, paquete, lata, bandeja, bolsa, brick, cucharada, cucharadita, pellizco, taza, diente, al_gusto",
           "shopping_category": "uno de: verduras, frutas, carne, pescado, lacteos, panaderia, despensa, congelado, bebidas, otros",
           "supermarket": "uno de: mercadona, lidl, bon-area, aldi (siempre uno; elige el más probable)"
         }
@@ -229,7 +229,8 @@ export function DataActions() {
             <div className="mt-3 space-y-2 px-1">
               <div>
                 <span className="text-text font-medium">unit:</span> g, kg, ml, l, ud, pieza, unidad,
-                paquete, lata, bandeja, bolsa, brick, cucharada, cucharadita, pellizco, taza, diente
+                paquete, lata, bandeja, bolsa, brick, cucharada, cucharadita, pellizco, taza,
+                diente, al_gusto
               </div>
               <div>
                 <span className="text-text font-medium">shopping_category:</span> verduras, frutas,
