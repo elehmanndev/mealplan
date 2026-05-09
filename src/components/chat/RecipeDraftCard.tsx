@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Minus, Plus, X } from 'lucide-react';
+import { Check, Minus, Plus, Users, Clock, X } from 'lucide-react';
 import { UNITS, type Unit } from '@/types';
 import { SUPERMARKETS } from '@/lib/supermarkets';
 
@@ -62,20 +62,16 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
 
   if (saved) {
     return (
-      <div
-        className="rounded-3xl px-4 py-3 bg-surface/80 backdrop-blur-md flex items-center justify-between gap-3 border border-border/30 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]"
+      <a
+        href={`/recipes/${saved.id}`}
+        className="block rounded-3xl px-4 py-3 bg-surface/80 backdrop-blur-md border border-border/30 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)] active:scale-[0.99] transition-transform"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <span className="shrink-0 text-xl leading-none">{draft.emoji ?? '🍽️'}</span>
-          <span className="truncate text-text font-medium">{saved.name}</span>
+          <span className="truncate text-text font-medium flex-1 tracking-tight">{saved.name}</span>
+          <span className="shrink-0 text-text-muted">→</span>
         </div>
-        <a
-          href={`/recipes/${saved.id}`}
-          className="shrink-0 text-xs text-accent font-semibold tracking-tight"
-        >
-          Ver receta →
-        </a>
-      </div>
+      </a>
     );
   }
 
@@ -108,29 +104,25 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
   const pantry = ingredients.filter((ing) => ing.is_pantry);
 
   return (
-    <div
-      className="rounded-3xl bg-surface/90 backdrop-blur-xl border border-border/30 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_-8px_rgba(0,0,0,0.18)]"
-    >
+    <div className="rounded-3xl bg-surface/90 backdrop-blur-xl border border-border/30 overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_-8px_rgba(0,0,0,0.18)]">
       <header className="px-5 pt-4 pb-3 flex items-center gap-3.5">
         <span className="text-3xl leading-none shrink-0">{draft.emoji ?? '🍽️'}</span>
         <div className="flex-1 min-w-0">
           <h3 className="text-[15px] font-semibold text-text leading-tight tracking-tight truncate">
             {draft.name}
           </h3>
-          <div className="text-[11px] text-text-muted/80 mt-1 flex items-center gap-1 tracking-tight">
-            <span>{draft.servings} pax</span>
+          <div className="text-[11px] text-text-muted/80 mt-1 flex items-center gap-2.5 tracking-tight">
+            <span className="inline-flex items-center gap-1">
+              <Users size={11} strokeWidth={2.25} />
+              {draft.servings}
+            </span>
             {draft.prep_time_min ? (
-              <>
-                <span className="opacity-50">•</span>
-                <span>{draft.prep_time_min} min</span>
-              </>
+              <span className="inline-flex items-center gap-1">
+                <Clock size={11} strokeWidth={2.25} />
+                {draft.prep_time_min}′
+              </span>
             ) : null}
-            {draft.category ? (
-              <>
-                <span className="opacity-50">•</span>
-                <span className="capitalize">{draft.category}</span>
-              </>
-            ) : null}
+            {draft.category ? <span className="capitalize opacity-70">{draft.category}</span> : null}
           </div>
         </div>
       </header>
@@ -141,7 +133,7 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
           return (
             <li
               key={i}
-              className="rounded-2xl px-3 py-2.5 bg-bg/50 border border-border/20 transition-all"
+              className="rounded-2xl px-3 py-2.5 bg-bg/50 border border-border/20"
             >
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-[13px] text-text font-medium truncate flex-1 tracking-tight">
@@ -151,7 +143,7 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
                   type="button"
                   onClick={() => removeIngredient(i)}
                   aria-label={`Quitar ${ing.name}`}
-                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/50 hover:text-red-400 active:scale-90 transition-all flex items-center justify-center"
+                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/40 hover:text-red-400 active:scale-90 transition-all flex items-center justify-center"
                 >
                   <X size={11} strokeWidth={2.5} />
                 </button>
@@ -172,7 +164,7 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
                   value={ing.unit}
                   onChange={(e) => patchIngredient(i, { unit: e.target.value as Unit })}
                   aria-label={`Unidad de ${ing.name}`}
-                  className="bg-transparent text-text-muted/80 text-[11px] outline-none -ml-1 mr-0.5 appearance-none cursor-pointer hover:text-text transition-colors"
+                  className="bg-transparent text-text-muted/70 text-[11px] outline-none -ml-1 appearance-none cursor-pointer hover:text-text transition-colors"
                 >
                   {UNITS.map((u) => (
                     <option key={u} value={u}>
@@ -195,13 +187,13 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
                   }
                   aria-label={`Supermercado: ${sm?.label ?? 'sin asignar'} (toca para cambiar)`}
                   className={[
-                    'ml-auto px-2.5 h-7 rounded-full text-[11px] font-semibold tracking-tight transition-all active:scale-95 flex items-center',
+                    'ml-auto px-2.5 h-7 rounded-full text-[11px] font-semibold tracking-tight transition-all active:scale-95 flex items-center min-w-[60px] justify-center',
                     sm
                       ? `${sm.pillClass} shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]`
-                      : 'bg-surface text-text-muted/70 border border-border/30',
+                      : 'bg-surface text-text-muted/60 border border-border/30 border-dashed',
                   ].join(' ')}
                 >
-                  {sm?.label ?? 'Sin super'}
+                  {sm?.label ?? '—'}
                 </button>
               </div>
             </li>
@@ -210,11 +202,15 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
       </ul>
 
       {pantry.length > 0 && (
-        <div className="px-5 pt-2 pb-1 text-[10.5px] text-text-muted/70 leading-relaxed tracking-tight">
-          <span className="uppercase tracking-[0.08em] text-text-muted/50 font-medium">
-            Despensa
-          </span>{' '}
-          · {pantry.map((p) => p.name).join(' · ')}
+        <div className="px-5 pt-2 pb-1 flex flex-wrap items-center gap-1.5">
+          {pantry.map((p, idx) => (
+            <span
+              key={idx}
+              className="text-[10px] text-text-muted/70 px-2 py-0.5 rounded-full bg-bg/40 border border-border/20 tracking-tight"
+            >
+              {p.name}
+            </span>
+          ))}
         </div>
       )}
 
@@ -223,19 +219,19 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, saving, saved }: Pro
           type="button"
           onClick={onDiscard}
           disabled={saving}
-          className="flex-1 h-11 rounded-2xl text-text-muted text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-40 hover:bg-bg/40"
+          aria-label="Descartar"
+          className="w-11 h-11 shrink-0 rounded-2xl text-text-muted/70 flex items-center justify-center active:scale-[0.96] transition-all disabled:opacity-40 hover:bg-bg/40"
         >
-          <X size={13} strokeWidth={2.5} />
-          Descartar
+          <X size={16} strokeWidth={2.5} />
         </button>
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="flex-[1.5] h-11 rounded-2xl bg-accent text-white text-[13px] font-semibold tracking-tight flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-60 shadow-[0_4px_14px_-2px_rgba(96,142,255,0.45)]"
+          className="flex-1 h-11 rounded-2xl bg-accent text-white text-[13px] font-semibold tracking-tight flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-60 shadow-[0_4px_14px_-2px_rgba(96,142,255,0.45)]"
         >
           <Check size={14} strokeWidth={2.75} />
-          {saving ? 'Guardando…' : 'Guardar receta'}
+          {saving ? 'Guardando…' : 'Guardar'}
         </button>
       </footer>
     </div>
