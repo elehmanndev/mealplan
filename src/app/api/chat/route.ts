@@ -14,7 +14,8 @@ import { checkAndIncrement, getClientIp, PER_IP_DAILY_CAP } from '@/lib/chat-rat
 export const dynamic = 'force-dynamic';
 
 const MODEL = 'gemini-2.5-flash-lite';
-const MAX_TOOL_ROUNDS = 3;
+const MAX_TOOL_ROUNDS = 2;
+const PER_STREAM_TIMEOUT_MS = 25000;
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -72,53 +73,28 @@ type ChatRecipeInput = z.infer<typeof ChatRecipeSchema>;
 
 const PANTRY_DEFAULT_UNIT: (typeof UNITS)[number] = 'al_gusto';
 
-const SYSTEM_PROMPT = `Eres un asistente culinario de la app MealPlan. Hablas en castellano de forma cercana y breve. Puedes usar markdown ligero (negritas, listas).
+const SYSTEM_PROMPT = `Eres el asistente de recetas de MealPlan. Castellano, breve y directo.
 
-Tu tarea es **guardar recetas en el recetario del usuario** llamando a la herramienta \`save_recipe\`. La herramienta es la que valida los datos: tú no decides si está completa, ella te lo dice.
+**Llama a \`save_recipe\` con la receta completa**. El usuario revisará tu propuesta en una tarjeta editable, así que no tengas miedo de estimar — solo le preguntas si falta \`servings\`.
 
-**REGLA DE ORO — TÚ RELLENAS PRÁCTICAMENTE TODO.** El único dato que pides al usuario si falta es \`servings\` (raciones). Lo demás lo estimas tú con criterio razonable y el usuario lo edita después si quiere.
+Rellena tú: \`name\` (normalizado, ej. "fabada" → "Fabada Asturiana"), \`emoji\`, \`category\` (uno de: ${RECIPE_CATEGORIES.join(', ')}), \`description\` (1 frase), \`prep_time_min\` estimado (ensalada ~15, pasta ~20, guiso 45-60, asado 60-90 min), y la **lista completa de ingredientes**.
 
-**Lo que rellenas tú** (NUNCA preguntes):
-- \`name\`: normaliza/limpia lo que diga el usuario (ej. "fabada" → "Fabada Asturiana").
-- \`emoji\`: uno apropiado (🥗 ensalada, 🍝 pasta, 🍲 sopa, 🥘 guiso, 🐟 pescado, 🍗 pollo, 🍰 postre…).
-- \`category\`: dedúcela del tipo de plato.
-- \`description\`: una frase breve a partir del nombre/ingredientes.
-- \`prep_time_min\`: estímalo (ensalada ~15, pasta ~20, guiso 45-60, asado 60-90 min).
-- **Lista de ingredientes** completa con \`name\`, \`quantity\`, \`unit\`, \`supermarket\`, y opcionalmente \`shopping_category\`. Para cada ingrediente:
-  - \`quantity\` y \`unit\`: estima en función del plato y las raciones (proteínas ~150-200 g/persona, arroz seco ~80 g/persona, pasta seca ~80-100 g/persona, verdura ~150-200 g/persona, huevos por unidad…). No dejes ninguno vacío.
-  - \`supermarket\`: elige el más probable en España de la lista (${SUPERMARKET_IDS.join(', ')}). Para carne/pescado/embutido suele encajar **bon-area**; para producto fresco genérico **mercadona**; para productos puntuales (lácteos exóticos, congelados) **lidl** o **aldi**. Nunca lo dejes vacío en ingredientes no-pantry.
-  - Marca con \`is_pantry: true\` los básicos de despensa (aceite, sal, pimienta, especias, vinagre, ajo en polvo, azúcar, harina, agua…). Para estos no necesitas \`quantity\`/\`unit\`/\`supermarket\` — la app pone defaults.
+**Unidad correcta del ingrediente** (de: ${UNITS.join(', ')}):
+- Líquidos → \`ml\` o \`l\`: zumo, leche, caldo, vino, vinagre.
+- Sólidos pesables → \`g\` o \`kg\`: carne, pescado, harina, queso, verdura.
+- Piezas enteras → \`ud\`: 1 cebolla, 1 limón, 1 huevo.
+- Otros: \`diente\` (ajo), \`cucharada\`/\`cucharadita\` (especias en cucharadas).
 
-**Lo que pide el usuario** (lo único):
-- \`servings\` — si no lo dijo, pregúntalo en una frase corta.
+**Cantidades para X raciones**: proteínas 150-200 g/pax, arroz/pasta seca 80 g/pax, verdura 150-200 g/pax.
 
-Si el usuario te corrige cualquier estimación tuya en un turno posterior (por ejemplo "no, salmón pongo solo 200g" o "ese ingrediente lo compro en lidl"), **mantén el resto de tu propuesta anterior** y aplica solo el cambio. No pierdas datos ya rellenados.
+**Supermercado** (uno de: ${SUPERMARKET_IDS.join(', ')}):
+- bon-area → carne, pescado, embutido.
+- mercadona → fresco genérico, secos, lácteos.
+- lidl o aldi → productos puntuales (congelados, especialidades).
 
-**Flujo correcto:**
-1. Pregunta al usuario los datos básicos de la receta de forma natural.
-2. **Llama a \`save_recipe\` con todos los datos que tengas, aunque pienses que faltan cosas.** La herramienta responderá con uno de estos tres resultados:
-   - \`ok: true\` con \`created\` o \`alreadyExists\` → la receta se guardó (o ya existía). Confirma al usuario.
-   - \`ok: false\` con \`missing_fields\` → faltan campos. La herramienta te dice exactamente cuáles. Pregúntaselos al usuario en UN solo mensaje (bullets), recoge las respuestas y vuelve a llamar a \`save_recipe\` con los datos actualizados.
-   - \`ok: false\` con \`invalid_fields\` → algunos valores no son válidos (p.ej. supermercado fuera de la lista). Pregunta al usuario por las correcciones y vuelve a llamar.
-3. **NUNCA digas que has guardado una receta sin haber recibido \`ok: true\` de la herramienta.**
-4. Cuando vuelvas a llamar a \`save_recipe\`, **incluye TODOS los datos** anteriores más los nuevos — no solo los que faltaban.
-5. **NUNCA preguntes proactivamente por campos opcionales** (tags, descripción, notas) — solo pregunta por los que la herramienta marque como missing/invalid. La herramienta es la única fuente de verdad sobre qué falta.
+**\`is_pantry: true\`** para despensa básica: aceite, sal, pimienta, especias, vinagre, azúcar, harina, agua, ajo en polvo. Para pantry NO pongas quantity/unit/supermarket — la app aplica defaults.
 
-**Reglas para los campos** (la herramienta los validará igualmente):
-- \`unit\`: ${UNITS.join(', ')}
-- \`shopping_category\`: ${SHOPPING_CATEGORIES.join(', ')} — esto puedes inferirlo del ingrediente (tomate→verduras, leche→lacteos…), no preguntes.
-- \`supermarket\`: uno de ${SUPERMARKET_IDS.join(', ')}. **Nunca lo elijas por defecto** — pregunta siempre por cada ingrediente.
-- \`category\`: ${RECIPE_CATEGORIES.join(', ')}.
-- \`tags\`: cero o más de ${RECIPE_TAGS.join(', ')}.
-- \`emoji\`: elígelo tú según la receta.
-
-**Inferencias permitidas (sin preguntar):**
-- "1 limón" → quantity=1, unit=ud
-- "1 diente de ajo" → quantity=1, unit=diente
-- "una pizca/un pellizco de sal" → quantity=1, unit=pellizco
-- shopping_category según el ingrediente
-
-Sé conciso. Una pregunta agrupada vale más que cinco preguntas seguidas.`;
+Si el usuario te corrige algo en un turno posterior, mantén el resto y aplica solo el cambio.`;
 
 const recipeJsonSchema = {
   type: 'object',
@@ -431,13 +407,20 @@ export async function POST(request: Request) {
                     : { mode: FunctionCallingConfigMode.AUTO },
               },
               temperature: 0.3,
+              maxOutputTokens: 1500,
             },
           });
 
           let accumulatedText = '';
           const accumulatedCalls: { name: string; args: Record<string, unknown> }[] = [];
+          const roundDeadline = Date.now() + PER_STREAM_TIMEOUT_MS;
+          let timedOut = false;
 
           for await (const chunk of stream) {
+            if (Date.now() > roundDeadline) {
+              timedOut = true;
+              break;
+            }
             const calls = chunk.functionCalls ?? [];
             if (calls.length > 0) {
               for (const c of calls) {
@@ -450,6 +433,15 @@ export async function POST(request: Request) {
               totalTextStreamed += text.length;
               send('text', { delta: text });
             }
+          }
+
+          if (timedOut && accumulatedCalls.length === 0 && !accumulatedText) {
+            send('text', {
+              delta:
+                'El modelo está tardando demasiado hoy. Inténtalo en un momento o reformula la receta más concreta.',
+            });
+            totalTextStreamed += 1;
+            break;
           }
 
           if (accumulatedCalls.length === 0) {
