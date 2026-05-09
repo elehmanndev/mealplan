@@ -14,7 +14,7 @@ import { checkAndIncrement, getClientIp, PER_IP_DAILY_CAP } from '@/lib/chat-rat
 export const dynamic = 'force-dynamic';
 
 const MODEL = 'gemini-2.5-flash-lite';
-const MAX_TOOL_ROUNDS = 6;
+const MAX_TOOL_ROUNDS = 3;
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -39,11 +39,15 @@ const ChatIngredientSchema = z.object({
 const ChatRecipeSchema = z
   .object({
     name: z.string().min(1),
-    emoji: z.string().min(1),
+    // Model-domain fields are OPTIONAL at the schema level — the model is
+    // encouraged via the prompt to always fill them, but Flash-Lite occasionally
+    // misses one. Server-side defaults below keep the save flowing rather than
+    // bouncing on a missing emoji or short description.
+    emoji: z.string().min(1).optional(),
     servings: z.number().int().positive(),
-    category: z.enum(RECIPE_CATEGORIES),
+    category: z.enum(RECIPE_CATEGORIES).optional(),
     prep_time_min: z.number().int().positive(),
-    description: z.string().min(10),
+    description: z.string().min(1).optional(),
     notes: z.string().optional(),
     tags: z.array(z.enum(RECIPE_TAGS)).optional(),
     ingredients: z.array(ChatIngredientSchema).min(1),
@@ -388,6 +392,8 @@ export async function POST(request: Request) {
       try {
         let totalTextStreamed = 0;
         const recipesCreatedNames: string[] = [];
+        const recipesSkippedNames: string[] = [];
+        let lastValidationFailedModelDomain = false;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
           const stream = await ai.models.generateContentStream({
             model: MODEL,
@@ -459,6 +465,15 @@ export async function POST(request: Request) {
               recipesCreatedNames.push(result.created.name);
             } else if (result.alreadyExists) {
               send('recipe_skipped', { name: result.alreadyExists.name });
+              recipesSkippedNames.push(result.alreadyExists.name);
+            } else if (!result.ok) {
+              const userMissing = (result.missing_fields ?? []).filter(
+                (m) => !MODEL_FILLED_FIELDS.has(topLevelKey(m)),
+              );
+              const userInvalid = (result.invalid_fields ?? []).filter(
+                (i) => !MODEL_FILLED_FIELDS.has(topLevelKey(i.path)),
+              );
+              lastValidationFailedModelDomain = userMissing.length === 0 && userInvalid.length === 0;
             }
             return {
               functionResponse: {
@@ -482,13 +497,34 @@ export async function POST(request: Request) {
             send('text', { delta: text });
             break;
           }
+
+          // If a recipe was just saved or skipped, short-circuit with a deterministic
+          // confirmation — don't burn a Gemini round in AUTO mode that often produces
+          // no text on Flash-Lite.
+          const anySuccess = toolResults.some((r) => r.ok);
+          if (anySuccess) {
+            const parts: string[] = [];
+            if (recipesCreatedNames.length) {
+              parts.push(
+                `¡Listo! He guardado **${recipesCreatedNames.join('**, **')}** en tu recetario.`,
+              );
+            }
+            if (recipesSkippedNames.length) {
+              parts.push(
+                `**${recipesSkippedNames.join('**, **')}** ya estaba en tu recetario, no la he duplicado.`,
+              );
+            }
+            const text = parts.join(' ');
+            totalTextStreamed += text.length;
+            send('text', { delta: text });
+            break;
+          }
         }
 
         if (totalTextStreamed === 0) {
-          const fallback =
-            recipesCreatedNames.length > 0
-              ? `Guardada **${recipesCreatedNames.join('**, **')}**.`
-              : 'Listo.';
+          const fallback = lastValidationFailedModelDomain
+            ? 'Algo no me ha cuadrado por dentro al guardar la receta. ¿Podrías volver a contarme los datos?'
+            : 'Listo.';
           send('text', { delta: fallback });
         }
         send('done', { remaining: limit.remaining, cap: PER_IP_DAILY_CAP });
