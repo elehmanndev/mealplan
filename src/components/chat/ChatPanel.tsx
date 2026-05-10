@@ -102,6 +102,22 @@ export function ChatPanel() {
     ta.scrollTop = ta.scrollHeight;
   }, [text]);
 
+  // Hide the BottomNav while the user is typing — keeps the composer
+  // unblocked when the OS lifts the nav above the keyboard.
+  useEffect(() => {
+    const ta = inputRef.current;
+    if (!ta) return;
+    const onFocus = () => document.body.setAttribute('data-chat-typing', '');
+    const onBlur = () => document.body.removeAttribute('data-chat-typing');
+    ta.addEventListener('focus', onFocus);
+    ta.addEventListener('blur', onBlur);
+    return () => {
+      ta.removeEventListener('focus', onFocus);
+      ta.removeEventListener('blur', onBlur);
+      document.body.removeAttribute('data-chat-typing');
+    };
+  }, []);
+
   async function send() {
     const content = text.trim();
     if (!content || busy) return;

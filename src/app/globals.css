@@ -55,6 +55,24 @@ body {
   min-height: 100dvh;
 }
 
+/* When the chat textarea is focused, hide the BottomNav and collapse the
+   chat-page bottom padding so the composer fills the bottom of the visible
+   area. iOS and Android both lift fixed-bottom toolbars above the keyboard
+   by default; hiding the nav prevents it from overlapping the composer. */
+[data-bottom-nav] {
+  transition: transform 180ms ease-out;
+}
+body[data-chat-typing] [data-bottom-nav] {
+  transform: translateY(calc(100% + env(safe-area-inset-bottom)));
+  pointer-events: none;
+}
+[data-chat-main] {
+  transition: padding-bottom 180ms ease-out;
+}
+body[data-chat-typing] [data-chat-main] {
+  padding-bottom: 0 !important;
+}
+
 html.light .bg-surface {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
 }
