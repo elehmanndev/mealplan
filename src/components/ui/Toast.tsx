@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 
 type ToastKind = 'success' | 'error' | 'info';
@@ -21,6 +22,8 @@ let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const pathname = usePathname();
+  const onChat = pathname?.startsWith('/chat') ?? false;
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -40,7 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         className="fixed left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}
+        style={{ bottom: `calc(env(safe-area-inset-bottom) + ${onChat ? 180 : 96}px)` }}
         aria-live="polite"
         aria-atomic="true"
       >

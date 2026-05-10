@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Mic, Send, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,8 +18,7 @@ interface ChatMessage {
 
 const WELCOME: ChatMessage = {
   role: 'model',
-  content:
-    '¡Hola! Cuéntame una receta y te propondré una versión lista para guardar. Por ejemplo: *lentejas con chorizo para 4 personas* o *ensalada de quinoa con aguacate*.',
+  content: 'Pídeme un plato que te apetezca y te hago la receta. Como tu abuela, pero sin sermón.',
 };
 
 export function ChatPanel() {
@@ -33,21 +32,39 @@ export function ChatPanel() {
 
   function handleMic() {
     inputRef.current?.focus();
-    try {
-      const seen = window.localStorage.getItem('mealplan.micHintSeen');
-      if (!seen) {
-        toast.show('Toca el micrófono de tu teclado para dictar 🎤', 'info');
-        window.localStorage.setItem('mealplan.micHintSeen', '1');
-      }
-    } catch {
-      // localStorage may be unavailable (private mode); ignore
-    }
   }
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, busy]);
+
+  useLayoutEffect(() => {
+    const ta = inputRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+    ta.scrollTop = ta.scrollHeight;
+  }, [text]);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const sync = () => {
+      root.style.setProperty('--vvh', `${vv.height}px`);
+      root.style.setProperty('--vvb', `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`);
+    };
+    sync();
+    vv.addEventListener('resize', sync);
+    vv.addEventListener('scroll', sync);
+    return () => {
+      vv.removeEventListener('resize', sync);
+      vv.removeEventListener('scroll', sync);
+      root.style.removeProperty('--vvh');
+      root.style.removeProperty('--vvb');
+    };
+  }, []);
 
   async function send() {
     const content = text.trim();
@@ -58,9 +75,33 @@ export function ChatPanel() {
     setBusy(true);
 
     try {
-      const apiMessages = next
+      const baseMessages = next
         .filter((m) => m !== WELCOME)
         .map(({ role, content }) => ({ role, content }));
+
+      // If a previous draft is still on screen (pending or saving), seed the
+      // model with the user's current edits so it doesn't re-introduce
+      // ingredients the user removed/changed when answering the next request.
+      const pending = [...messages]
+        .reverse()
+        .find(
+          (m) =>
+            m.role === 'model' &&
+            m.draft &&
+            m.draftStatus !== 'discarded' &&
+            m.draftStatus !== 'saved',
+        );
+      const apiMessages =
+        pending?.draft && baseMessages.length > 0
+          ? [
+              ...baseMessages.slice(0, -1),
+              {
+                role: 'model' as const,
+                content: `Estado actual de la receta tras las ediciones del usuario:\n\`\`\`json\n${JSON.stringify(pending.draft, null, 2)}\n\`\`\`\nUsa este estado como base. Aplica solo el cambio que pida el usuario; no reintroduzcas ingredientes que ya quitó ni revierte cantidades que ya ajustó.`,
+              },
+              baseMessages[baseMessages.length - 1],
+            ]
+          : baseMessages;
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -221,6 +262,15 @@ export function ChatPanel() {
     });
   }
 
+  function updateDraft(messageIndex: number, edited: RecipeDraft) {
+    setMessages((prev) => {
+      const copy = [...prev];
+      const m = copy[messageIndex];
+      if (m && m.draft) copy[messageIndex] = { ...m, draft: edited };
+      return copy;
+    });
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -239,6 +289,7 @@ export function ChatPanel() {
               streaming={busy && i === messages.length - 1}
               onSaveDraft={(edited) => saveDraft(i, edited)}
               onDiscardDraft={() => discardDraft(i)}
+              onChangeDraft={(edited) => updateDraft(i, edited)}
             />
           ))}
         </div>
@@ -254,7 +305,7 @@ export function ChatPanel() {
             placeholder="Describe una receta…"
             rows={1}
             disabled={busy}
-            className="flex-1 bg-surface rounded-2xl px-4 py-3 text-sm text-text placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-accent/50 resize-none max-h-32 disabled:opacity-60"
+            className="flex-1 bg-surface rounded-2xl px-4 py-3 text-sm text-text placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-accent/50 resize-none max-h-[calc(5lh+1.5rem)] disabled:opacity-60 no-scrollbar"
           />
           <button
             type="button"
@@ -290,11 +341,13 @@ function Message({
   streaming,
   onSaveDraft,
   onDiscardDraft,
+  onChangeDraft,
 }: {
   message: ChatMessage;
   streaming: boolean;
   onSaveDraft: (edited: RecipeDraft) => void;
   onDiscardDraft: () => void;
+  onChangeDraft: (edited: RecipeDraft) => void;
 }) {
   if (message.role === 'user') {
     return (
@@ -353,11 +406,12 @@ function Message({
           )}
 
           {showDraft && message.draft && (
-            <div className="mt-3">
+            <div className="mt-3 mx-2">
               <RecipeDraftCard
                 draft={message.draft}
                 onSave={onSaveDraft}
                 onDiscard={onDiscardDraft}
+                onChange={onChangeDraft}
                 saving={message.draftStatus === 'saving'}
                 saved={message.draftStatus === 'saved' ? message.draftSaved : undefined}
               />
@@ -377,9 +431,30 @@ function Message({
 
 function ThinkingDots() {
   return (
-    <div className="inline-flex items-center gap-1.5 text-text-muted text-sm py-1">
-      <Sparkles size={14} className="animate-pulse" />
-      <span>Pensando…</span>
+    <div className="inline-flex items-center gap-2 text-text-muted text-sm py-1">
+      <Sparkles size={14} className="text-accent animate-thinking-spin" />
+      <span className="animate-thinking-shimmer bg-clip-text text-transparent bg-[linear-gradient(90deg,rgb(var(--text-muted))_0%,rgb(var(--text))_50%,rgb(var(--text-muted))_100%)] bg-[length:200%_100%]">
+        Pensando…
+      </span>
+      <style jsx global>{`
+        @keyframes thinking-spin {
+          0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.7; }
+          50% { transform: rotate(180deg) scale(1.15); opacity: 1; }
+        }
+        .animate-thinking-spin {
+          animation: thinking-spin 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes thinking-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .animate-thinking-shimmer {
+          animation: thinking-shimmer 2.2s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-thinking-spin, .animate-thinking-shimmer { animation: none; }
+        }
+      `}</style>
     </div>
   );
 }
