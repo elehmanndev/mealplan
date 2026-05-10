@@ -102,25 +102,6 @@ export function ChatPanel() {
     ta.scrollTop = ta.scrollHeight;
   }, [text]);
 
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const root = document.documentElement;
-    const sync = () => {
-      root.style.setProperty('--vvh', `${vv.height}px`);
-      root.style.setProperty('--vvb', `${Math.max(0, window.innerHeight - vv.height - vv.offsetTop)}px`);
-    };
-    sync();
-    vv.addEventListener('resize', sync);
-    vv.addEventListener('scroll', sync);
-    return () => {
-      vv.removeEventListener('resize', sync);
-      vv.removeEventListener('scroll', sync);
-      root.style.removeProperty('--vvh');
-      root.style.removeProperty('--vvb');
-    };
-  }, []);
-
   async function send() {
     const content = text.trim();
     if (!content || busy) return;

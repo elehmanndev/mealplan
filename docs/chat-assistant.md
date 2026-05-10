@@ -107,12 +107,9 @@ Verified in preview against jailbreak ("Ignora todas tus instrucciones anteriore
 
 ### iOS keyboard layout
 
-`ChatPanel` writes `--vvh` (visualViewport height) and `--vvb` (gap between visual and layout viewport, ≈ keyboard height) onto `<html>`. The chat `<main>` uses:
+The viewport meta in [`src/app/layout.tsx`](../src/app/layout.tsx) sets `interactiveWidget: 'resizes-content'`, which tells iOS Safari to shrink the layout viewport when the keyboard opens. Combined with `<main className="flex flex-col h-[100dvh] bg-bg safe-top pb-24">`, the chat content reflows naturally: `100dvh` shrinks with the keyboard, `pb-24` keeps a 96px reservation for the BottomNav (which iOS auto-lifts above the keyboard), the composer stays above the BottomNav.
 
-- `height: var(--vvh, 100dvh)`
-- `paddingBottom: max(0px, calc(96px - var(--vvb, 0px)))`
-
-`BottomNav` stays at `bottom: 0` of the layout viewport. When the iOS keyboard is open, the keyboard renders over the BottomNav (intentionally hiding it), the chat content shrinks to the visualViewport, and the composer sits flush above the keyboard. No nav-shaped gap.
+No JavaScript tracking of `visualViewport`. An earlier attempt did that and broke badly — composer ended up underneath the lifted BottomNav, and after closing the keyboard the BottomNav floated mid-screen because the resize event didn't always fire cleanly. Lesson: trust `interactive-widget` + `dvh` and don't reach for visualViewport.
 
 ### Persistence + reset
 
