@@ -548,7 +548,7 @@ export async function POST(request: Request) {
         if (totalTextStreamed === 0) {
           const fallback = lastValidationFailedModelDomain
             ? 'Algo no me ha cuadrado por dentro al preparar la receta. ¿Podrías volver a contarme los datos?'
-            : 'Listo.';
+            : 'No me llega la respuesta. Inténtalo otra vez.';
           send('text', { delta: fallback });
         }
         send('done', { remaining: limit.remaining, cap: PER_IP_DAILY_CAP });

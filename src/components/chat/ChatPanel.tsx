@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mic, Send, Sparkles } from 'lucide-react';
+import { Mic, RotateCcw, Send, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/components/ui/Toast';
@@ -21,6 +21,21 @@ const WELCOME: ChatMessage = {
   content: 'Pídeme un plato que te apetezca y te hago la receta. Como tu abuela, pero sin sermón.',
 };
 
+const STORAGE_KEY = 'mealplan.chat.messages';
+
+function loadStoredMessages(): ChatMessage[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ChatMessage[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function ChatPanel() {
   const toast = useToast();
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
@@ -29,12 +44,52 @@ export function ChatPanel() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const stickToBottomRef = useRef(true);
+  const hydratedRef = useRef(false);
+
+  // Hydrate from sessionStorage on first mount.
+  useEffect(() => {
+    const stored = loadStoredMessages();
+    if (stored) setMessages(stored);
+    hydratedRef.current = true;
+  }, []);
+
+  // Persist messages on change (skip the initial render before hydration).
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    try {
+      // Drop in-flight streaming placeholders to keep storage clean.
+      const persisted = messages.filter(
+        (m, i) => !(i === messages.length - 1 && m.role === 'model' && m.content === '' && !m.draft),
+      );
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+    } catch {
+      // sessionStorage may be unavailable / quota exceeded; ignore
+    }
+  }, [messages]);
 
   function handleMic() {
     inputRef.current?.focus();
   }
 
+  function resetChat() {
+    setMessages([WELCOME]);
+    try {
+      window.sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
+  function handleScroll() {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Within 24px of the bottom counts as "at bottom" — accommodates fractional pixels and small overshoots.
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+  }
+
   useEffect(() => {
+    if (!stickToBottomRef.current) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, busy]);
@@ -69,6 +124,8 @@ export function ChatPanel() {
   async function send() {
     const content = text.trim();
     if (!content || busy) return;
+    // User just acted — they want to see the result regardless of prior scroll position.
+    stickToBottomRef.current = true;
     const next: ChatMessage[] = [...messages, { role: 'user', content }];
     setMessages([...next, { role: 'model', content: '' }]);
     setText('');
@@ -278,9 +335,29 @@ export function ChatPanel() {
     }
   }
 
+  const hasHistory = messages.length > 1;
+
   return (
     <div className="flex-1 min-h-0 flex flex-col gap-3">
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+      {hasHistory && (
+        <div className="mx-auto w-full max-w-3xl flex justify-end -mb-2">
+          <button
+            type="button"
+            onClick={resetChat}
+            disabled={busy}
+            aria-label="Nueva conversación"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface text-text-muted text-[11px] font-medium tracking-tight active:scale-95 transition-all disabled:opacity-40 hover:text-text"
+          >
+            <RotateCcw size={12} strokeWidth={2.5} />
+            Nueva conversación
+          </button>
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar"
+      >
         <div className="mx-auto max-w-3xl flex flex-col gap-5 pb-2">
           {messages.map((m, i) => (
             <Message
