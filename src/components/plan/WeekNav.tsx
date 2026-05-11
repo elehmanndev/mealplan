@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Home, MoreVertical } from 'lucide-react';
-import { formatWeekLabel, getCurrentWeek, getNextWeek, getPrevWeek } from '@/lib/week';
+import { formatWeekLabel, getNextWeek, getPrevWeek } from '@/lib/week';
 
 interface WeekNavProps {
   week: string;
@@ -15,8 +15,6 @@ const iconBtn =
 export function WeekNav({ week, onOpenActions }: WeekNavProps) {
   const prev = getPrevWeek(week);
   const next = getNextWeek(week);
-  const current = getCurrentWeek();
-  const isCurrent = week === current;
 
   return (
     <header className="sticky top-0 z-20 glass-top safe-top">
@@ -33,18 +31,8 @@ export function WeekNav({ week, onOpenActions }: WeekNavProps) {
           <Link href={`/?week=${prev}`} aria-label="Semana anterior" className={iconBtn}>
             <ChevronLeft size={22} />
           </Link>
-          <div className="flex items-center gap-2 min-w-[100px] justify-center">
+          <div className="flex items-center justify-center min-w-[100px]">
             <span className="font-semibold text-base tabular-nums">{formatWeekLabel(week)}</span>
-            {isCurrent ? (
-              <span className="text-xs text-text-muted">Hoy</span>
-            ) : (
-              <Link
-                href={`/?week=${current}`}
-                className="text-xs text-accent font-medium px-2 py-0.5 rounded-full bg-accent/10 active:scale-95 transition-transform"
-              >
-                Hoy
-              </Link>
-            )}
           </div>
           <Link href={`/?week=${next}`} aria-label="Semana siguiente" className={iconBtn}>
             <ChevronRight size={22} />

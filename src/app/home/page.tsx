@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { Calendar, BookOpen, ShoppingCart, ChevronRight } from 'lucide-react';
-import { BottomNav } from '@/components/ui/BottomNav';
+import { Calendar, BookOpen, ShoppingCart, Sparkles, Settings, ChevronRight } from 'lucide-react';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { getCurrentWeek } from '@/lib/week';
 
@@ -8,8 +7,8 @@ export default function HomePage() {
   const week = getCurrentWeek();
 
   return (
-    <main className="flex flex-col min-h-screen bg-bg safe-top pb-24">
-      <div className="flex-1 flex flex-col px-4 pt-12 gap-8">
+    <main className="flex flex-col min-h-dvh bg-bg safe-top safe-bottom">
+      <div className="flex-1 flex flex-col px-4 pt-16 pb-8 gap-12">
         <div className="flex flex-col gap-2 min-w-0">
           <h1>
             <Wordmark className="h-10 w-auto" />
@@ -20,19 +19,19 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <Link
             href={`/?week=${week}`}
-            className="flex items-center justify-between bg-accent rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+            className="flex items-center justify-between bg-surface active:bg-accent rounded-2xl px-5 py-4 active:scale-[0.98] transition-all group"
           >
             <div className="flex items-center gap-4">
-              <Calendar size={28} className="text-white" />
+              <Calendar size={24} className="text-accent group-active:text-white" />
               <div className="flex flex-col gap-0.5">
-                <div className="text-white font-semibold text-base leading-tight">Plan semanal</div>
-                <div className="text-white/70 text-sm leading-tight">Tus comidas en un vistazo</div>
+                <div className="text-text group-active:text-white font-semibold text-base leading-tight">Plan semanal</div>
+                <div className="text-text-muted group-active:text-white/70 text-sm leading-tight">Tus comidas en un vistazo</div>
               </div>
             </div>
-            <ChevronRight size={20} className="text-white/70" />
+            <ChevronRight size={18} className="text-text-muted group-active:text-white/70" />
           </Link>
 
           <Link
@@ -62,10 +61,36 @@ export default function HomePage() {
             </div>
             <ChevronRight size={18} className="text-text-muted" />
           </Link>
+
+          <Link
+            href="/chat"
+            className="flex items-center justify-between bg-surface rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center gap-4">
+              <Sparkles size={24} className="text-accent" />
+              <div className="flex flex-col gap-0.5">
+                <div className="text-text font-semibold text-base leading-tight">Chat</div>
+                <div className="text-text-muted text-sm leading-tight">Crea recetas con IA</div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-text-muted" />
+          </Link>
+
+          <Link
+            href="/settings"
+            className="flex items-center justify-between bg-surface rounded-2xl px-5 py-4 active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center gap-4">
+              <Settings size={24} className="text-accent" />
+              <div className="flex flex-col gap-0.5">
+                <div className="text-text font-semibold text-base leading-tight">Ajustes</div>
+                <div className="text-text-muted text-sm leading-tight">Preferencias y datos</div>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-text-muted" />
+          </Link>
         </div>
       </div>
-
-      <BottomNav currentWeek={week} />
     </main>
   );
 }

@@ -125,12 +125,12 @@ export function WeekView({ week, entries }: WeekViewProps) {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <div className="flex-1 min-h-0 px-3 pt-5 pb-5">
+        <div className="px-3 pt-5 pb-5">
           <div
-            className="grid gap-2 h-full"
+            className="grid gap-2"
             style={{
               gridTemplateColumns: '44px repeat(2, minmax(0, 1fr))',
-              gridTemplateRows: 'auto repeat(7, minmax(0, 1fr))',
+              gridTemplateRows: 'auto repeat(7, minmax(76px, auto))',
             }}
           >
             <div aria-hidden />

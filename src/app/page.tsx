@@ -15,7 +15,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const entries = listWeekPlan(week);
 
   return (
-    <main className="flex flex-col h-dvh pb-24">
+    <main className="flex flex-col min-h-dvh pb-24">
       <WeekView week={week} entries={entries} />
       <BottomNav currentWeek={week} />
     </main>
