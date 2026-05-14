@@ -56,7 +56,7 @@ The cloned repo's remote is the SSH alias `git@github-mealplan:...` (`Host githu
    docker stop mealplan
    mv mealplan mealplan.bak.$(date +%s)
    GIT_SSH_COMMAND="ssh -i /root/.ssh/mealplan_deploy -o IdentitiesOnly=yes" \
-     git clone git@github-mealplan:ericll93/mealplan.git mealplan
+     git clone git@github-mealplan:elehmanndev/mealplan.git mealplan
    BAK=$(ls -td mealplan.bak.* | head -1)
    mv "$BAK/data" mealplan/data
    chown -R 1001:1001 mealplan/data
