@@ -111,7 +111,10 @@ export async function redeemInviteAction(rawToken: string): Promise<RedeemInvite
     ).run(user.id, token);
   })();
 
-  revalidatePath('/', 'layout');
+  // No `revalidatePath` here — Next.js 15 forbids that during a server
+  // component render, and the /join/[token] page calls this during render.
+  // The post-redirect destination (/) is `force-dynamic` and so re-renders
+  // fresh on the next request anyway.
   return { ok: true, householdId: invite.household_id, alreadyMember: false };
 }
 
