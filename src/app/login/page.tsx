@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { signIn, auth } from '@/auth';
-import { Wordmark } from '@/components/ui/Wordmark';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,17 +42,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </div>
 
       <div className="w-full max-w-[360px] flex flex-col items-center gap-10">
-        {/* Wordmark — full-bleed within the max-width column so the gradient
-            mealplan name is the visual anchor of the page. */}
-        <Wordmark className="w-full h-auto" />
+        {/* Wordmark — inlined here (instead of using the shared `<Wordmark>`)
+            so the text uses textAnchor="middle" + x=230 and renders centered
+            within its viewBox. The shared component on /home is left-aligned
+            by design; centering it there would misalign the title with the
+            paragraph below. */}
+        <CenteredWordmark />
 
         {/* Tagline */}
-        <div className="text-center space-y-2 px-2">
-          <h1 className="text-[22px] font-semibold tracking-tight leading-tight text-text">
+        <div className="text-center space-y-2.5 px-2">
+          <h1
+            className="font-semibold tracking-tight leading-tight text-text whitespace-nowrap"
+            style={{ fontSize: 'clamp(14px, 4.6vw, 20px)' }}
+          >
             Tus comidas de la semana, en un vistazo
           </h1>
-          <p className="text-sm text-text-muted leading-relaxed max-w-[300px] mx-auto">
-            Recetas, calendario y lista de la compra — sincronizado con tu casa, listo para el supermercado.
+          <p className="text-sm text-text-muted leading-relaxed max-w-[280px] mx-auto">
+            Plan, recetas y lista de la compra — sincronizado con tu casa.
           </p>
         </div>
 
@@ -79,10 +84,43 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </form>
 
         <p className="text-[11px] text-text-muted/80 text-center leading-relaxed max-w-[280px]">
-          Al continuar accedemos solo a tu nombre y correo de Google. Nada más.
+          Solo pedimos a Google tu nombre y tu correo — nada más.
         </p>
       </div>
     </main>
+  );
+}
+
+function CenteredWordmark() {
+  return (
+    <svg
+      viewBox="0 0 460 110"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      fill="none"
+      role="img"
+      aria-label="MealPlan"
+    >
+      <defs>
+        <linearGradient id="wm-login-grad" x1="0" y1="0" x2="460" y2="110" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#6366F1" />
+          <stop offset="0.55" stopColor="#7C3AED" />
+          <stop offset="1" stopColor="#A855F7" />
+        </linearGradient>
+      </defs>
+      <text
+        x="230"
+        y="86"
+        textAnchor="middle"
+        fontFamily="Inter, 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        fontSize="88"
+        fontWeight="800"
+        letterSpacing="-4"
+        fill="url(#wm-login-grad)"
+      >
+        mealplan
+      </text>
+    </svg>
   );
 }
 
