@@ -91,7 +91,7 @@ export function InviteButton() {
       </button>
 
       {url && (
-        <div className="rounded-2xl bg-surface ring-1 ring-white/5 p-3 flex flex-col gap-2">
+        <div className="rounded-2xl bg-surface ring-1 ring-[color:var(--glass-border)] p-3 flex flex-col gap-2">
           <div className="text-[11px] uppercase tracking-wider text-text-muted px-1">
             Comparte este enlace
           </div>

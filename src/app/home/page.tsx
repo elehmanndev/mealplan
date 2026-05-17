@@ -2,8 +2,12 @@ import Link from 'next/link';
 import { Calendar, BookOpen, ShoppingCart, Sparkles, Settings, ChevronRight } from 'lucide-react';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { getCurrentWeek } from '@/lib/week';
+import { requireHouseholdIdOrRedirect } from '@/lib/auth';
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  await requireHouseholdIdOrRedirect();
   const week = getCurrentWeek();
 
   return (

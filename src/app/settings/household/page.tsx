@@ -52,7 +52,7 @@ export default async function HouseholdSettingsPage() {
           <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
             Miembros ({members.length})
           </h2>
-          <ul className="bg-surface rounded-2xl divide-y divide-white/5 overflow-hidden">
+          <ul className="bg-surface rounded-2xl divide-y divide-[color:var(--glass-border)] overflow-hidden">
             {members.map((m) => (
               <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
                 <Avatar name={m.name ?? m.email} image={m.image} />
@@ -100,7 +100,7 @@ function Avatar({ name, image }: { name: string; image: string | null }) {
       <img
         src={image}
         alt=""
-        className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-white/10"
+        className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-[color:var(--glass-border)]"
       />
     );
   }

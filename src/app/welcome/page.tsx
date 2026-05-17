@@ -46,7 +46,7 @@ export default async function WelcomePage() {
               placeholder="Casa García"
               autoComplete="off"
               autoFocus
-              className="h-12 rounded-2xl bg-surface ring-1 ring-white/5 px-4 text-[15px] text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-2 focus:ring-violet-400"
+              className="h-12 rounded-2xl bg-surface ring-1 ring-[color:var(--glass-border)] px-4 text-[15px] text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-2 focus:ring-violet-400"
             />
           </label>
 
@@ -62,7 +62,7 @@ export default async function WelcomePage() {
           </button>
         </form>
 
-        <div className="w-full pt-2 border-t border-white/5">
+        <div className="w-full pt-2 border-t border-[color:var(--glass-border)]">
           <p className="text-[12px] text-text-muted/80 text-center leading-relaxed pt-4">
             ¿Te invitaron? Abre el enlace que te enviaron — no necesitas crear nada
             aquí.
