@@ -41,7 +41,11 @@ interface ExtraRow {
   removed: number;
 }
 
-export function generateShoppingList(weekStr: string, options: { includeRemoved?: boolean } = {}): ShoppingGroup[] {
+export function generateShoppingList(
+  householdId: number,
+  weekStr: string,
+  options: { includeRemoved?: boolean } = {},
+): ShoppingGroup[] {
   const { includeRemoved = false } = options;
   const dates = getWeekDates(weekStr);
   const start = formatDate(dates[0]);
@@ -51,9 +55,9 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
     .prepare(
       `SELECT mp.servings, r.id as recipe_id, r.base_servings
        FROM meal_plan mp JOIN recipes r ON r.id = mp.recipe_id
-       WHERE mp.date BETWEEN ? AND ?`,
+       WHERE mp.household_id = ? AND mp.date BETWEEN ? AND ?`,
     )
-    .all(start, end) as MealRow[];
+    .all(householdId, start, end) as MealRow[];
 
   const totals = new Map<string, ShoppingItem & { quantityNumber: number }>();
 
@@ -97,8 +101,10 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
   }
 
   const states = db
-    .prepare('SELECT ingredient_id, checked, removed FROM shopping_state WHERE week = ?')
-    .all(weekStr) as StateRow[];
+    .prepare(
+      'SELECT ingredient_id, checked, removed FROM shopping_state WHERE household_id = ? AND week = ?',
+    )
+    .all(householdId, weekStr) as StateRow[];
   const stateMap = new Map(states.map((s) => [s.ingredient_id, s]));
 
   for (const item of totals.values()) {
@@ -112,9 +118,9 @@ export function generateShoppingList(weekStr: string, options: { includeRemoved?
   const extras = db
     .prepare(
       `SELECT id, name, quantity, unit, shopping_category, checked, removed
-       FROM shopping_extras WHERE week = ?`,
+       FROM shopping_extras WHERE household_id = ? AND week = ?`,
     )
-    .all(weekStr) as ExtraRow[];
+    .all(householdId, weekStr) as ExtraRow[];
 
   const extraItems: ShoppingItem[] = extras.map((e) => ({
     kind: 'extra',

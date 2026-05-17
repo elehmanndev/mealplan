@@ -10,35 +10,41 @@ import {
   updateRecipe,
 } from '@/models/recipe';
 import { RecipeInput } from '@/schemas';
+import { requireHouseholdId } from '@/lib/auth';
 
 export async function createRecipeAction(input: unknown) {
+  const householdId = await requireHouseholdId();
   const data = RecipeInput.parse(input);
-  const id = createRecipe(data);
+  const id = createRecipe(householdId, data);
   revalidatePath('/recipes');
   return id;
 }
 
 export async function updateRecipeAction(id: number, input: unknown) {
+  const householdId = await requireHouseholdId();
   const data = RecipeInput.parse(input);
-  updateRecipe(id, data);
+  updateRecipe(householdId, id, data);
   revalidatePath('/recipes');
   revalidatePath(`/recipes/${id}`);
 }
 
 export async function deleteRecipeAction(id: number) {
-  deleteRecipe(id);
+  const householdId = await requireHouseholdId();
+  deleteRecipe(householdId, id);
   revalidatePath('/recipes');
   redirect('/recipes');
 }
 
 export async function toggleFavoriteAction(id: number) {
-  toggleFavoriteRecipe(id);
+  const householdId = await requireHouseholdId();
+  toggleFavoriteRecipe(householdId, id);
   revalidatePath('/recipes');
   revalidatePath(`/recipes/${id}`);
 }
 
 export async function duplicateRecipeAction(id: number) {
-  const newId = duplicateRecipe(id);
+  const householdId = await requireHouseholdId();
+  const newId = duplicateRecipe(householdId, id);
   revalidatePath('/recipes');
   return newId;
 }

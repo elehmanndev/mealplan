@@ -7,6 +7,10 @@ import path from 'node:path';
 const TEST_DB = path.join(process.cwd(), '.test-shopping.db');
 process.env.DATABASE_PATH = TEST_DB;
 
+// Household 1 ("Casa Lehmann") is created by migration 009 against the test
+// DB on first init, so every fixture below scopes to it.
+const HID = 1;
+
 beforeAll(() => {
   if (fs.existsSync(TEST_DB)) fs.unlinkSync(TEST_DB);
 });
@@ -17,8 +21,8 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(`
-      INSERT INTO recipes (id, name, base_servings) VALUES (1000, 'Test Pasta', 2);
-      INSERT INTO recipes (id, name, base_servings) VALUES (1001, 'Test Salsa', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1000, ${HID}, 'Test Pasta', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1001, ${HID}, 'Test Salsa', 2);
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
         VALUES (5000, 'TestTomate', 'g', 'verduras', 'mercadona');
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
@@ -26,12 +30,12 @@ describe('generateShoppingList', () => {
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1000, 5000, 100, 'g');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1000, 5001, 200, 'g');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1001, 5000, 50, 'g');
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2025-11-17', 'comida', 1000, 4);
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2025-11-17', 'cena', 1001, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2025-11-17', 'comida', 1000, 4);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2025-11-17', 'cena', 1001, 2);
     `);
 
     // Saturday-week opening on 2025-11-15 covers Mon 2025-11-17.
-    const groups = generateShoppingList('2025-11-15');
+    const groups = generateShoppingList(HID, '2025-11-15');
     const allItems = groups.flatMap((g) => g.items);
     const tomate = allItems.find((i) => i.name === 'TestTomate');
     // pasta (4 servings → ratio 2 → 200g) + salsa (2 servings → ratio 1 → 50g) = 250g
@@ -43,17 +47,17 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(`
-      INSERT INTO shopping_state (week, ingredient_id, checked, removed) VALUES ('2025-11-15', 5000, 1, 0);
-      INSERT INTO shopping_state (week, ingredient_id, checked, removed) VALUES ('2025-11-15', 5001, 0, 1);
+      INSERT INTO shopping_state (household_id, week, ingredient_id, checked, removed) VALUES (${HID}, '2025-11-15', 5000, 1, 0);
+      INSERT INTO shopping_state (household_id, week, ingredient_id, checked, removed) VALUES (${HID}, '2025-11-15', 5001, 0, 1);
     `);
-    const groups = generateShoppingList('2025-11-15');
+    const groups = generateShoppingList(HID, '2025-11-15');
     const allItems = groups.flatMap((g) => g.items);
     const tomate = allItems.find((i) => i.name === 'TestTomate');
     expect(tomate?.checked).toBe(true);
     const pastaItem = allItems.find((i) => i.name === 'TestPasta');
     expect(pastaItem).toBeUndefined();
 
-    const groupsWithRemoved = generateShoppingList('2025-11-15', { includeRemoved: true });
+    const groupsWithRemoved = generateShoppingList(HID, '2025-11-15', { includeRemoved: true });
     const allWithRemoved = groupsWithRemoved.flatMap((g) => g.items);
     expect(allWithRemoved.find((i) => i.name === 'TestPasta')).toBeDefined();
   });
@@ -63,10 +67,10 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(
-      `INSERT INTO shopping_extras (week, name, quantity, unit, shopping_category)
-       VALUES ('2025-11-15', 'Papel higiénico', 1, 'ud', 'otros')`,
+      `INSERT INTO shopping_extras (household_id, week, name, quantity, unit, shopping_category)
+       VALUES (${HID}, '2025-11-15', 'Papel higiénico', 1, 'ud', 'otros')`,
     );
-    const groups = generateShoppingList('2025-11-15');
+    const groups = generateShoppingList(HID, '2025-11-15');
     const allItems = groups.flatMap((g) => g.items);
     expect(allItems.some((i) => i.name === 'Papel higiénico')).toBe(true);
   });
@@ -76,18 +80,18 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(`
-      INSERT INTO recipes (id, name, base_servings) VALUES (1100, 'Test Pantry Recipe', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1100, ${HID}, 'Test Pantry Recipe', 2);
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket, is_pantry)
         VALUES (5100, 'TestAceite', 'ml', 'despensa', 'lidl', 1);
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket, is_pantry)
         VALUES (5101, 'TestArroz', 'g', 'despensa', 'lidl', 0);
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1100, 5100, 30, 'ml');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1100, 5101, 200, 'g');
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-01-05', 'comida', 1100, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-01-05', 'comida', 1100, 2);
     `);
 
     // Saturday-week opening on 2026-01-03 covers Mon 2026-01-05.
-    const groups = generateShoppingList('2026-01-03');
+    const groups = generateShoppingList(HID, '2026-01-03');
     const allItems = groups.flatMap((g) => g.items);
     expect(allItems.find((i) => i.name === 'TestAceite')).toBeUndefined();
     expect(allItems.find((i) => i.name === 'TestArroz')).toBeDefined();
@@ -98,8 +102,8 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(`
-      INSERT INTO recipes (id, name, base_servings) VALUES (1200, 'Half Cans', 2);
-      INSERT INTO recipes (id, name, base_servings) VALUES (1201, 'Half Tray', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1200, ${HID}, 'Half Cans', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1201, ${HID}, 'Half Tray', 2);
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
         VALUES (5200, 'TestAceitunas', 'lata', 'despensa', 'lidl');
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
@@ -110,12 +114,12 @@ describe('generateShoppingList', () => {
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1200, 5202, 100, 'g');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1201, 5200, 0.5, 'lata');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1201, 5201, 0.5, 'bandeja');
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-02-09', 'comida', 1200, 2);
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-02-09', 'cena', 1201, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-02-09', 'comida', 1200, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-02-09', 'cena', 1201, 2);
     `);
 
     // Saturday-week opening on 2026-02-07 covers Mon 2026-02-09.
-    const groups = generateShoppingList('2026-02-07');
+    const groups = generateShoppingList(HID, '2026-02-07');
     const allItems = groups.flatMap((g) => g.items);
     // 0.5 + 0.5 = 1.0, packaged → 1
     expect(allItems.find((i) => i.name === 'TestAceitunas')?.quantity).toBe(1);
@@ -132,18 +136,18 @@ describe('generateShoppingList', () => {
     const { generateShoppingList } = await import('../shopping');
 
     db.exec(`
-      INSERT INTO recipes (id, name, base_servings) VALUES (1300, 'Recipe A', 2);
-      INSERT INTO recipes (id, name, base_servings) VALUES (1301, 'Recipe B', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1300, ${HID}, 'Recipe A', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1301, ${HID}, 'Recipe B', 2);
       INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
         VALUES (5300, 'TestShared', 'g', 'verduras', 'lidl');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1300, 5300, 100, 'g');
       INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1301, 5300, 150, 'g');
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-03-09', 'comida', 1300, 2);
-      INSERT INTO meal_plan (date, slot, recipe_id, servings) VALUES ('2026-03-09', 'comida', 1301, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-03-09', 'comida', 1300, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-03-09', 'comida', 1301, 2);
     `);
 
     // Saturday-week opening on 2026-03-07 covers Mon 2026-03-09.
-    const groups = generateShoppingList('2026-03-07');
+    const groups = generateShoppingList(HID, '2026-03-07');
     const allItems = groups.flatMap((g) => g.items);
     expect(allItems.find((i) => i.name === 'TestShared')?.quantity).toBe(250);
   });

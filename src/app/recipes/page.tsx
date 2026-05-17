@@ -5,6 +5,7 @@ import { RECIPE_TAGS } from '@/types';
 import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
+import { requireHouseholdId } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,7 @@ interface RecipesPageProps {
 }
 
 export default async function RecipesPage({ searchParams }: RecipesPageProps) {
+  const householdId = await requireHouseholdId();
   const params = await searchParams;
   const q = (params.q ?? '').trim();
   const activeTags = (params.tags ?? '')
@@ -21,7 +23,7 @@ export default async function RecipesPage({ searchParams }: RecipesPageProps) {
     .filter((t) => RECIPE_TAGS.includes(t as (typeof RECIPE_TAGS)[number]));
   const favoritesOnly = params.fav === '1';
 
-  const recipes = listRecipes({
+  const recipes = listRecipes(householdId, {
     search: q || undefined,
     tags: activeTags.length ? activeTags : undefined,
     favoritesOnly,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sanitizeJsonText } from '@/lib/sanitize-json';
 import { importRecipes, RecipeInputSchema } from '@/lib/recipe-import';
+import { requireHouseholdId } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ const PayloadSchema = z.union([
 ]);
 
 export async function POST(request: Request) {
+  const householdId = await requireHouseholdId();
   let json: unknown;
   try {
     const raw = await request.text();
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
   const recipes = Array.isArray(data) ? data : 'recipes' in data ? data.recipes : [data];
 
   try {
-    const { imported, skipped } = importRecipes(recipes);
+    const { imported, skipped } = importRecipes(householdId, recipes);
     return NextResponse.json({ ok: true, imported, skipped });
   } catch (err) {
     return NextResponse.json(

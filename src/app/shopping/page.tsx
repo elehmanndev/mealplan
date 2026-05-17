@@ -5,6 +5,7 @@ import { BottomNav } from '@/components/ui/BottomNav';
 import { ShoppingHeader } from '@/components/shopping/ShoppingHeader';
 import { ShoppingList } from '@/components/shopping/ShoppingList';
 import { AddExtraButton } from '@/components/shopping/AddExtraButton';
+import { requireHouseholdId } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,9 +14,10 @@ interface ShoppingPageProps {
 }
 
 export default async function ShoppingPage({ searchParams }: ShoppingPageProps) {
+  const householdId = await requireHouseholdId();
   const params = await searchParams;
   const week = params.week && /^\d{4}-\d{2}-\d{2}$/.test(params.week) ? params.week : getCurrentWeek();
-  const groups = generateShoppingList(week);
+  const groups = generateShoppingList(householdId, week);
 
   return (
     <main className="min-h-dvh pb-24">

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { getRecipe } from '@/models/recipe';
 import { RecipeForm } from '@/components/recipes/RecipeForm';
+import { requireHouseholdId } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,10 +12,11 @@ interface EditRecipePageProps {
 }
 
 export default async function EditRecipePage({ params }: EditRecipePageProps) {
+  const householdId = await requireHouseholdId();
   const { id } = await params;
   const recipeId = Number(id);
   if (!Number.isFinite(recipeId)) notFound();
-  const recipe = getRecipe(recipeId);
+  const recipe = getRecipe(householdId, recipeId);
   if (!recipe) notFound();
 
   return (

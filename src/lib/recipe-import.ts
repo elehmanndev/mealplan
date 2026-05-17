@@ -37,16 +37,18 @@ export interface ImportResult {
   insertedIds: number[];
 }
 
-export function importRecipes(recipes: RecipeInput[]): ImportResult {
+export function importRecipes(householdId: number, recipes: RecipeInput[]): ImportResult {
   let imported = 0;
   const skipped: string[] = [];
   const insertedIds: number[] = [];
 
   const tx = db.transaction(() => {
-    const existsStmt = db.prepare('SELECT id FROM recipes WHERE LOWER(name) = LOWER(?)');
+    const existsStmt = db.prepare(
+      'SELECT id FROM recipes WHERE household_id = ? AND LOWER(name) = LOWER(?)',
+    );
     const insertRecipe = db.prepare(
-      `INSERT INTO recipes (name, description, emoji, base_servings, category, prep_time_min, notes, is_favorite)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+      `INSERT INTO recipes (household_id, name, description, emoji, base_servings, category, prep_time_min, notes, is_favorite)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
     );
     const insertIng = db.prepare(
       `INSERT OR REPLACE INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit)
@@ -57,11 +59,12 @@ export function importRecipes(recipes: RecipeInput[]): ImportResult {
     );
 
     for (const r of recipes) {
-      if (existsStmt.get(r.name.trim())) {
+      if (existsStmt.get(householdId, r.name.trim())) {
         skipped.push(r.name);
         continue;
       }
       const result = insertRecipe.run(
+        householdId,
         r.name.trim(),
         r.description ?? null,
         r.emoji ?? '🍽️',
