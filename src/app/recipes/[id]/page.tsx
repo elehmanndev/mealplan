@@ -7,7 +7,7 @@ import { BottomNav } from '@/components/ui/BottomNav';
 import { FavoriteToggle } from '@/components/recipes/FavoriteToggle';
 import { RecipeMenu } from '@/components/recipes/RecipeMenu';
 import { RecipeDetailClient } from '@/components/recipes/RecipeDetailClient';
-import { requireHouseholdId } from '@/lib/auth';
+import { requireHouseholdIdOrRedirect } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,7 @@ interface RecipeDetailPageProps {
 }
 
 export default async function RecipeDetailPage({ params }: RecipeDetailPageProps) {
-  const householdId = await requireHouseholdId();
+  const householdId = await requireHouseholdIdOrRedirect();
   const { id } = await params;
   const recipeId = Number(id);
   if (!Number.isFinite(recipeId)) notFound();

@@ -54,6 +54,12 @@ export type PlanDuplicateInput = z.infer<typeof PlanDuplicateInput>;
 // (See src/lib/week.ts for the rationale — Eric plans Sa→Fr, not Mon→Sun.)
 export const WeekStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+export const HouseholdNameInput = z.string().trim().min(1, 'Pon un nombre a tu casa').max(60, 'Máximo 60 caracteres');
+
+// Base64url-encoded token from crypto.randomBytes(24) → 32 chars.
+// Validate length-ish (don't be too strict, just refuse obvious garbage).
+export const InviteTokenInput = z.string().regex(/^[A-Za-z0-9_-]{16,64}$/, 'Enlace no válido');
+
 export const ShoppingExtraInput = z.object({
   week: WeekStr,
   name: z.string().min(1).max(80),

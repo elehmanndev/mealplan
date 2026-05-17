@@ -5,7 +5,7 @@ import { RECIPE_TAGS } from '@/types';
 import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
-import { requireHouseholdId } from '@/lib/auth';
+import { requireHouseholdIdOrRedirect } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ interface RecipesPageProps {
 }
 
 export default async function RecipesPage({ searchParams }: RecipesPageProps) {
-  const householdId = await requireHouseholdId();
+  const householdId = await requireHouseholdIdOrRedirect();
   const params = await searchParams;
   const q = (params.q ?? '').trim();
   const activeTags = (params.tags ?? '')

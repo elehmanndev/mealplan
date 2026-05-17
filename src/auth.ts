@@ -73,10 +73,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!account || account.provider !== 'google') return false;
       const email = user.email?.toLowerCase();
       if (!email) return false;
-      // Transitional gate (slice 1): only the configured owner can sign in.
-      // Removed in slice 3 once /welcome + invite flow exist to give other
-      // users their own household instead of dropping them into Eric's data.
-      if (!ownerEmail || email !== ownerEmail) return false;
+      // Open sign-up. After this returns true the user may still have no
+      // household; the page-level gate (`requireHouseholdIdOrRedirect`) sends
+      // them to `/welcome` to create one or accept an invite.
       syncUserAndMaybeClaim({
         googleSub: account.providerAccountId,
         email,
