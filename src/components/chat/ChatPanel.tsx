@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useToast } from '@/components/ui/Toast';
 import { RecipeDraftCard, type RecipeDraft } from '@/components/chat/RecipeDraftCard';
+import { ChatUsageBar } from '@/components/chat/ChatUsageBar';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -41,7 +42,8 @@ export function ChatPanel() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [usedToday, setUsedToday] = useState<number | null>(null);
+  const [capToday, setCapToday] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const stickToBottomRef = useRef(true);
@@ -232,7 +234,8 @@ export function ChatPanel() {
       } else if (ev.event === 'tool_error') {
         toast.show(String(data.error ?? 'Error con la herramienta'), 'error');
       } else if (ev.event === 'done') {
-        if (typeof data.remaining === 'number') setRemaining(data.remaining);
+        if (typeof data.used === 'number') setUsedToday(data.used);
+        if (typeof data.cap === 'number') setCapToday(data.cap);
       } else if (ev.event === 'error') {
         toast.show(String(data.message ?? 'Error'), 'error');
       }
@@ -400,11 +403,8 @@ export function ChatPanel() {
             <Send size={18} />
           </button>
         </div>
-        {remaining !== null && (
-          <div className="text-[11px] text-text-muted px-2">
-            {remaining} mensaje{remaining === 1 ? '' : 's'} disponible{remaining === 1 ? '' : 's'} hoy
-          </div>
-        )}
+        <ChatUsageBar liveUsed={usedToday} liveCap={capToday} compact />
+
       </div>
     </div>
   );

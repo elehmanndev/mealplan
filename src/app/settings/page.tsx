@@ -3,8 +3,10 @@ import { Home as HomeIcon, ChevronRight, LogOut } from 'lucide-react';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { DataActions } from '@/components/settings/DataActions';
+import { ChatUsageBar } from '@/components/chat/ChatUsageBar';
 import { getCurrentWeek } from '@/lib/week';
 import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUsage } from '@/lib/chat-rate-limit';
 import { signOut } from '@/auth';
 import pkg from '../../../package.json';
 
@@ -13,6 +15,7 @@ export const dynamic = 'force-dynamic';
 export default async function SettingsPage() {
   const week = getCurrentWeek();
   const user = await getCurrentUser();
+  const usage = user ? getCurrentUsage(user.id) : null;
 
   async function doSignOut() {
     'use server';
@@ -29,6 +32,15 @@ export default async function SettingsPage() {
             <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
               Cuenta
             </h2>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface">
+              <Avatar name={user.name ?? user.email} image={user.image} />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-text truncate">
+                  {user.name?.trim() || user.email}
+                </div>
+                <div className="text-xs text-text-muted truncate">{user.email}</div>
+              </div>
+            </div>
             <Link
               href="/settings/household"
               className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
@@ -36,12 +48,15 @@ export default async function SettingsPage() {
               <HomeIcon size={20} className="text-text-muted shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-text">Mi casa</div>
-                <div className="text-xs text-text-muted truncate">
-                  {user.email}
-                </div>
+                <div className="text-xs text-text-muted truncate">Miembros e invitaciones</div>
               </div>
               <ChevronRight size={18} className="text-text-muted shrink-0" />
             </Link>
+            {usage && (
+              <div className="px-4 py-3 rounded-2xl bg-surface">
+                <ChatUsageBar initialUsed={usage.used} initialCap={usage.cap} />
+              </div>
+            )}
             <form action={doSignOut}>
               <button
                 type="submit"
@@ -83,5 +98,27 @@ export default async function SettingsPage() {
 
       <BottomNav currentWeek={week} />
     </main>
+  );
+}
+
+function Avatar({ name, image }: { name: string; image: string | null }) {
+  if (image) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={image}
+        alt=""
+        className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-[color:var(--glass-border)]"
+      />
+    );
+  }
+  const initial = (name.trim()[0] ?? '?').toUpperCase();
+  return (
+    <div
+      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white shrink-0"
+      style={{ background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 55%, #A855F7 100%)' }}
+    >
+      {initial}
+    </div>
   );
 }

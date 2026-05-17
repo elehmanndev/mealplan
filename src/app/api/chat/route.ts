@@ -9,7 +9,8 @@ import { RECIPE_CATEGORIES, RECIPE_TAGS, UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
 import { SUPERMARKETS } from '@/lib/supermarkets';
 import { db } from '@/lib/db';
-import { checkAndIncrement, getClientIp, PER_IP_DAILY_CAP } from '@/lib/chat-rate-limit';
+import { checkAndIncrement, PER_USER_DAILY_CAP } from '@/lib/chat-rate-limit';
+import { getCurrentUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -375,8 +376,14 @@ export async function POST(request: Request) {
     });
   }
 
-  const ip = getClientIp(request);
-  const limit = checkAndIncrement(ip);
+  const user = await getCurrentUser();
+  if (!user) {
+    return new Response(sseEvent('error', { message: 'Inicia sesión para usar el chat' }), {
+      status: 401,
+      headers: { 'Content-Type': 'text/event-stream' },
+    });
+  }
+  const limit = checkAndIncrement(user.id);
   if (!limit.ok) {
     return new Response(
       sseEvent('error', {
@@ -551,7 +558,7 @@ export async function POST(request: Request) {
             : 'Se me ha ido el santo al cielo. Vuelve a probar.';
           send('text', { delta: fallback });
         }
-        send('done', { remaining: limit.remaining, cap: PER_IP_DAILY_CAP });
+        send('done', { used: limit.used, remaining: limit.remaining, cap: PER_USER_DAILY_CAP });
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error de Gemini';
         const isQuota = /quota|rate|429/i.test(msg);
