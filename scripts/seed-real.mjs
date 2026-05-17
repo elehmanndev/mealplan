@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-shot seed for Eric + partner's real recipes + plan for week 2026-W18/W19.
+// One-shot seed for the author's real recipes + plan for week 2026-W18/W19.
 //
 // Idempotent: wipes recipes / recipe_ingredients / recipe_tags / meal_plan,
 // upserts ingredients (creating new ones, updating supermarket/is_pantry on

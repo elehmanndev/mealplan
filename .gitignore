@@ -25,3 +25,7 @@ coverage/
 
 .claude/settings.local.json
 .claude/worktrees/
+
+# Local-only sensitive docs (deploy details, brief, progress log).
+# Mirrored in Obsidian under Projects/5_Mealplan/private/.
+private/

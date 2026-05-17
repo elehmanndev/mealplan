@@ -64,15 +64,13 @@ docker compose build
 docker compose up -d
 ```
 
-Container exposes 3000; compose maps it to 3001 on the host. SQLite file lives in the bind-mounted volume `/mnt/user/appdata/mealplan/data` (Unraid path — adjust for other hosts).
+Container exposes 3000; compose maps it to a host port. SQLite lives in a bind-mounted volume — set `DATA_DIR` in your environment (defaults to `./data` for local runs) so the host directory matches your deployment.
 
 ## Deploy
 
-**Live at `https://mealplan.elehmann.dev`** — Cloudflare Tunnel → `***REDACTED-LAN-IP***:3004` on Unraid, Cloudflare Access in front (One-Time PIN, two-email allowlist).
+The app runs behind Cloudflare Access on the author's own infrastructure — single-tenant, no public sign-up. Auth is delegated to Cloudflare; the app reads the authenticated user from `cf-access-authenticated-user-email`.
 
-**Pushes to `main` auto-deploy** in ~50 seconds via the `mealplan-webhook` container on Unraid (HMAC-validated). Full pipeline doc + bootstrap + secret-rotation procedure in [docs/auto-deploy.md](docs/auto-deploy.md).
-
-For a one-off rebuild without going through GitHub: `ssh unraid 'cd /mnt/user/appdata/mealplan && docker compose up -d --build'`.
+**Pushes to `main` auto-deploy** in ~50 seconds via a webhook receiver next to the app (HMAC-SHA256 validated). Pipeline shape lives in [docs/auto-deploy.md](docs/auto-deploy.md); host-specific paths are kept out of this public repo.
 
 ## Project map
 
