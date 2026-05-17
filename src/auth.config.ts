@@ -11,4 +11,8 @@ export const authConfig = {
   providers: [Google],
   session: { strategy: 'jwt' },
   trustHost: true,
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
 } satisfies NextAuthConfig;

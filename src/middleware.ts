@@ -8,6 +8,7 @@ const { auth } = NextAuth(authConfig);
 
 const PUBLIC_PATH_PREFIXES = [
   '/api/auth',
+  '/login',
   '/welcome',
   '/join',
   '/icons',
@@ -27,7 +28,7 @@ export default auth((req) => {
   const { nextUrl } = req;
   if (isPublic(nextUrl.pathname)) return NextResponse.next();
   if (req.auth) return NextResponse.next();
-  const signIn = new URL('/api/auth/signin', nextUrl);
+  const signIn = new URL('/login', nextUrl);
   signIn.searchParams.set('callbackUrl', nextUrl.pathname + nextUrl.search);
   return NextResponse.redirect(signIn);
 });
