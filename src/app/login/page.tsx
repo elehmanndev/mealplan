@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { signIn, auth } from '@/auth';
 import { Wordmark } from '@/components/ui/Wordmark';
@@ -44,28 +43,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </div>
 
       <div className="w-full max-w-[360px] flex flex-col items-center gap-10">
-        {/* Logo + wordmark */}
-        <div className="flex flex-col items-center gap-5">
-          <div
-            className="relative w-[88px] h-[88px] rounded-[26px] overflow-hidden ring-1 ring-white/10"
-            style={{ boxShadow: '0 20px 50px -10px rgba(124, 58, 237, 0.55), 0 8px 20px -8px rgba(124, 58, 237, 0.35)' }}
-          >
-            <Image
-              src="/icon-512.png"
-              alt=""
-              width={88}
-              height={88}
-              priority
-              className="w-full h-full"
-            />
-          </div>
-          <Wordmark className="h-9 w-auto" />
-        </div>
+        {/* Wordmark — full-bleed within the max-width column so the gradient
+            mealplan name is the visual anchor of the page. */}
+        <Wordmark className="w-full h-auto" />
 
         {/* Tagline */}
         <div className="text-center space-y-2 px-2">
           <h1 className="text-[22px] font-semibold tracking-tight leading-tight text-text">
-            Tu semana de comidas, en su sitio
+            Tus comidas de la semana, en un vistazo
           </h1>
           <p className="text-sm text-text-muted leading-relaxed max-w-[300px] mx-auto">
             Recetas, calendario y lista de la compra — sincronizado con tu casa, listo para el supermercado.
