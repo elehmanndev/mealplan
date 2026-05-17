@@ -2,23 +2,16 @@ import NextAuth from 'next-auth';
 import { authConfig } from '@/auth.config';
 import { db } from '@/lib/db';
 
-declare module 'next-auth' {
-  interface User {
-    householdId?: number | null;
-    role?: 'owner' | 'member' | null;
-  }
-}
-
+// JWT only carries the user id. Household membership / role are looked up
+// fresh from the DB on every request in src/lib/auth.ts — see the comment
+// in `readActiveMembership` for why we don't trust the JWT for that.
 declare module '@auth/core/jwt' {
   interface JWT {
     userId?: number;
-    householdId?: number | null;
-    role?: 'owner' | 'member' | null;
   }
 }
 
 type UserRow = { id: number; google_sub: string | null; email: string };
-type MembershipRow = { household_id: number; role: 'owner' | 'member' };
 
 const ownerEmail = process.env.MEALPLAN_OWNER_EMAIL?.toLowerCase() ?? null;
 
@@ -27,7 +20,7 @@ function syncUserAndMaybeClaim(args: {
   email: string;
   name: string | null;
   image: string | null;
-}): { userId: number; membership: MembershipRow | null } {
+}): number {
   const existing = db
     .prepare('SELECT id, google_sub, email FROM users WHERE google_sub = ? OR email = ?')
     .get(args.googleSub, args.email) as UserRow | undefined;
@@ -57,13 +50,7 @@ function syncUserAndMaybeClaim(args: {
     ).run(userId);
   }
 
-  const membership = db
-    .prepare(
-      'SELECT household_id, role FROM memberships WHERE user_id = ? ORDER BY joined_at ASC LIMIT 1',
-    )
-    .get(userId) as MembershipRow | undefined;
-
-  return { userId, membership: membership ?? null };
+  return userId;
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -88,15 +75,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user && account?.provider === 'google') {
         const email = user.email?.toLowerCase();
         if (email) {
-          const { userId, membership } = syncUserAndMaybeClaim({
+          token.userId = syncUserAndMaybeClaim({
             googleSub: account.providerAccountId,
             email,
             name: user.name ?? null,
             image: user.image ?? null,
           });
-          token.userId = userId;
-          token.householdId = membership?.household_id ?? null;
-          token.role = membership?.role ?? null;
         }
       }
       return token;
@@ -104,8 +88,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (token.userId != null) {
         session.user.id = String(token.userId);
-        session.user.householdId = token.householdId ?? null;
-        session.user.role = token.role ?? null;
       }
       return session;
     },

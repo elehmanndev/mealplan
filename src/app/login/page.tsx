@@ -18,7 +18,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   async function signInWithGoogle() {
     'use server';
-    await signIn('google', { redirectTo: callbackUrl ?? '/' });
+    // /post-signin is a tiny route handler that resolves home vs /welcome
+    // based on DB membership, so invitees without a household never see a
+    // flash of `/` before landing on the onboarding form.
+    await signIn('google', { redirectTo: callbackUrl ?? '/post-signin' });
   }
 
   return (
