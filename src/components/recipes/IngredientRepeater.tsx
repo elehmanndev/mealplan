@@ -68,8 +68,23 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [matchedExisting, setMatchedExisting] = useState<boolean>(!!row.ingredient_id);
   const [matchedPantry, setMatchedPantry] = useState<boolean>(false);
+  // Local string state for the quantity input so the user can type
+  // intermediate values like "0," or "1." without the bound-to-number
+  // render wiping the trailing decimal separator.
+  const [qtyText, setQtyText] = useState<string>(String(row.quantity));
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-sync the local text only when the upstream quantity changes to a
+  // value that's NOT what our text already represents (e.g. picking a
+  // suggestion overwrites quantity). Pure-text edits don't loop.
+  useEffect(() => {
+    const parsed = parseFloat(qtyText.replace(',', '.'));
+    if (!Number.isFinite(parsed) || parsed !== row.quantity) {
+      setQtyText(String(row.quantity));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.quantity]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -115,9 +130,14 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
   };
 
   const handleQuantityChange = (raw: string) => {
-    const normalized = raw.replace(',', '.');
-    const parsed = parseFloat(normalized);
-    onPatch({ quantity: Number.isFinite(parsed) ? parsed : 0 });
+    setQtyText(raw);
+    const parsed = parseFloat(raw.replace(',', '.'));
+    // Only push to the parent when the text parses to a strictly positive
+    // number — intermediate states ("", "0", "0,", "1.") stay local so the
+    // user can finish typing. Zod validates > 0 on save anyway.
+    if (Number.isFinite(parsed) && parsed > 0) {
+      onPatch({ quantity: parsed });
+    }
   };
 
   const isCreatingNew = !matchedExisting && row.name.trim().length > 0;
@@ -180,7 +200,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
         <input
           type="text"
           inputMode="decimal"
-          value={String(row.quantity)}
+          value={qtyText}
           onChange={(e) => handleQuantityChange(e.target.value)}
           placeholder="Cant."
           className={`${inputCls} w-24`}
