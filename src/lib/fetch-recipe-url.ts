@@ -4,9 +4,15 @@
 // since DNS-level rebinding isn't blocked — that's overkill for a friends-
 // scale alpha behind a residential router.
 
-const MAX_BYTES = 1_500_000; // ~1.5MB
-const MAX_TEXT_CHARS = 8_000; // ~8KB sent to Gemini
-const FETCH_TIMEOUT_MS = 8_000;
+// Big recipe sites (Hello Fresh, NYT Cooking, etc.) routinely serve 3-5MB
+// HTML pages padded with inline JS, ads, "you might also like" lists. We
+// want headroom without letting truly pathological pages blow memory.
+const MAX_BYTES = 6_000_000; // ~6MB
+// What we actually send to Gemini. JSON-LD pulls (small) sit well under
+// this; full HTML strips truncate at the cap. 24KB ≈ 6-7K tokens — fine
+// in Gemini Flash 2.5's window.
+const MAX_TEXT_CHARS = 24_000;
+const FETCH_TIMEOUT_MS = 10_000;
 
 const PRIVATE_HOST_PATTERNS = [
   /^localhost$/i,
@@ -34,6 +40,108 @@ export function extractFirstUrl(message: string): string | null {
 
 function isPrivateHost(hostname: string): boolean {
   return PRIVATE_HOST_PATTERNS.some((re) => re.test(hostname));
+}
+
+/**
+ * Pull schema.org/Recipe data out of <script type="application/ld+json">
+ * blocks. Major recipe sites (Hello Fresh, NYT Cooking, Bon Appétit, BBC
+ * Good Food, etc.) publish full ingredients + instructions there — 1-3KB
+ * of clean structured data instead of 4MB of HTML.
+ *
+ * Returns a flattened text block ready to be prepended to the Gemini
+ * prompt, or null if no Recipe-shaped JSON-LD is found.
+ */
+function extractRecipeJsonLd(html: string): { title: string | null; text: string } | null {
+  const scriptRe = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  const candidates: unknown[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = scriptRe.exec(html))) {
+    const raw = match[1].trim();
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      // ld+json scripts can be a single object, an array, or wrapped in
+      // a @graph array. Flatten everything into the candidate list.
+      if (Array.isArray(parsed)) candidates.push(...parsed);
+      else if (parsed && typeof parsed === 'object') {
+        candidates.push(parsed);
+        const graph = (parsed as { '@graph'?: unknown[] })['@graph'];
+        if (Array.isArray(graph)) candidates.push(...graph);
+      }
+    } catch {
+      // Some sites embed templated/broken JSON-LD; just skip.
+    }
+  }
+
+  const recipe = candidates.find((c) => {
+    if (!c || typeof c !== 'object') return false;
+    const type = (c as { '@type'?: string | string[] })['@type'];
+    if (!type) return false;
+    return Array.isArray(type) ? type.includes('Recipe') : type === 'Recipe';
+  }) as Record<string, unknown> | undefined;
+  if (!recipe) return null;
+
+  const name = typeof recipe.name === 'string' ? recipe.name : null;
+  const description = typeof recipe.description === 'string' ? recipe.description : null;
+  const yieldVal = recipe.recipeYield ?? recipe.yield;
+  const totalTime = typeof recipe.totalTime === 'string' ? recipe.totalTime : null;
+  const prepTime = typeof recipe.prepTime === 'string' ? recipe.prepTime : null;
+  const cookTime = typeof recipe.cookTime === 'string' ? recipe.cookTime : null;
+  const ingredients = Array.isArray(recipe.recipeIngredient)
+    ? (recipe.recipeIngredient as unknown[]).filter((x): x is string => typeof x === 'string')
+    : [];
+  const instructions = flattenInstructions(recipe.recipeInstructions);
+
+  const lines: string[] = [];
+  if (name) lines.push(`Nombre: ${name}`);
+  if (description) lines.push(`Descripción: ${description}`);
+  if (yieldVal != null) lines.push(`Raciones: ${String(yieldVal)}`);
+  if (totalTime || prepTime || cookTime) {
+    lines.push(
+      `Tiempo: ${[prepTime && `prep ${prepTime}`, cookTime && `cocción ${cookTime}`, totalTime && `total ${totalTime}`]
+        .filter(Boolean)
+        .join(', ')}`,
+    );
+  }
+  if (ingredients.length > 0) {
+    lines.push('');
+    lines.push('Ingredientes:');
+    for (const ing of ingredients) lines.push(`- ${ing}`);
+  }
+  if (instructions.length > 0) {
+    lines.push('');
+    lines.push('Instrucciones:');
+    for (const step of instructions) lines.push(`- ${step}`);
+  }
+  if (lines.length === 0) return null;
+  return { title: name, text: lines.join('\n') };
+}
+
+function flattenInstructions(raw: unknown): string[] {
+  if (!raw) return [];
+  const out: string[] = [];
+  const push = (s: unknown) => {
+    if (typeof s === 'string' && s.trim()) out.push(s.trim());
+  };
+  const walk = (node: unknown) => {
+    if (!node) return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (typeof node === 'string') {
+      push(node);
+      return;
+    }
+    if (typeof node === 'object') {
+      const obj = node as Record<string, unknown>;
+      if (typeof obj.text === 'string') push(obj.text);
+      else if (typeof obj.name === 'string') push(obj.name);
+      if (obj.itemListElement) walk(obj.itemListElement);
+    }
+  };
+  walk(raw);
+  return out;
 }
 
 function stripHtml(html: string): { title: string | null; text: string } {
@@ -139,12 +247,16 @@ export async function fetchRecipeUrl(rawUrl: string): Promise<FetchResult> {
       offset += c.byteLength;
     }
     const html = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
-    const { title, text } = stripHtml(html);
+    // Prefer structured schema.org/Recipe data when the site publishes it
+    // — way higher signal than HTML scraping. Falls back to full strip
+    // for sites without JSON-LD.
+    const jsonLd = extractRecipeJsonLd(html);
+    const extracted = jsonLd ?? stripHtml(html);
     return {
       ok: true,
       url: parsed.toString(),
-      title,
-      text: text.slice(0, MAX_TEXT_CHARS),
+      title: extracted.title,
+      text: extracted.text.slice(0, MAX_TEXT_CHARS),
     };
   } catch (err) {
     if ((err as Error).name === 'AbortError') return { ok: false, reason: 'timeout' };
