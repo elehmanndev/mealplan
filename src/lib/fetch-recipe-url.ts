@@ -81,14 +81,24 @@ function extractRecipeJsonLd(html: string): { title: string | null; text: string
   }) as Record<string, unknown> | undefined;
   if (!recipe) return null;
 
-  const name = typeof recipe.name === 'string' ? recipe.name : null;
-  const description = typeof recipe.description === 'string' ? recipe.description : null;
+  const cleanField = (s: unknown): string | null => {
+    if (typeof s !== 'string') return null;
+    const cleaned = decodeEntities(s.replace(/<[^>]+>/g, ' '))
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || null;
+  };
+
+  const name = cleanField(recipe.name);
+  const description = cleanField(recipe.description);
   const yieldVal = recipe.recipeYield ?? recipe.yield;
   const totalTime = typeof recipe.totalTime === 'string' ? recipe.totalTime : null;
   const prepTime = typeof recipe.prepTime === 'string' ? recipe.prepTime : null;
   const cookTime = typeof recipe.cookTime === 'string' ? recipe.cookTime : null;
   const ingredients = Array.isArray(recipe.recipeIngredient)
-    ? (recipe.recipeIngredient as unknown[]).filter((x): x is string => typeof x === 'string')
+    ? (recipe.recipeIngredient as unknown[])
+        .map(cleanField)
+        .filter((x): x is string => typeof x === 'string')
     : [];
   const instructions = flattenInstructions(recipe.recipeInstructions);
 
@@ -121,7 +131,14 @@ function flattenInstructions(raw: unknown): string[] {
   if (!raw) return [];
   const out: string[] = [];
   const push = (s: unknown) => {
-    if (typeof s === 'string' && s.trim()) out.push(s.trim());
+    if (typeof s !== 'string') return;
+    // Some sites (Hello Fresh, looking at you) embed raw HTML inside
+    // JSON-LD instruction text — <p>, <strong>, <br>, dir attributes,
+    // etc. Strip it so Gemini gets clean prose, not malformed markup.
+    const cleaned = decodeEntities(s.replace(/<[^>]+>/g, ' '))
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (cleaned) out.push(cleaned);
   };
   const walk = (node: unknown) => {
     if (!node) return;
