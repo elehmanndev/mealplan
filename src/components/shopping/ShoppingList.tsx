@@ -1,6 +1,7 @@
 'use client';
 
 import type { ShoppingGroup } from '@/lib/shopping-types';
+import { getSupermarket, type SupermarketTheme } from '@/lib/supermarkets';
 import { ShoppingListItem } from './ShoppingListItem';
 
 interface ShoppingListProps {
@@ -8,50 +9,15 @@ interface ShoppingListProps {
   week: string;
 }
 
-interface PostItTheme {
-  bg: string;
-  border: string;
-  header: string;
-  divider: string;
-}
-
-const SUPERMARKET_THEMES: Record<string, PostItTheme> = {
-  lidl: {
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/25',
-    header: 'text-blue-500',
-    divider: 'divide-blue-500/15',
-  },
-  mercadona: {
-    bg: 'bg-green-500/10',
-    border: 'border-green-500/25',
-    header: 'text-green-600',
-    divider: 'divide-green-500/15',
-  },
-  'bon-area': {
-    bg: 'bg-amber-500/15',
-    border: 'border-amber-500/30',
-    header: 'text-amber-600',
-    divider: 'divide-amber-500/20',
-  },
-  aldi: {
-    bg: 'bg-sky-500/10',
-    border: 'border-sky-500/25',
-    header: 'text-sky-500',
-    divider: 'divide-sky-500/15',
-  },
-};
-
-const NEUTRAL_THEME: PostItTheme = {
+const NEUTRAL_THEME: SupermarketTheme = {
   bg: 'bg-surface',
-  border: 'border-white/5',
+  border: 'border-[color:var(--glass-border)]',
   header: 'text-text-muted',
-  divider: 'divide-neutral-500/20',
+  divider: 'divide-[color:var(--glass-border)]',
 };
 
-function getTheme(id: string | null): PostItTheme {
-  if (!id) return NEUTRAL_THEME;
-  return SUPERMARKET_THEMES[id] ?? NEUTRAL_THEME;
+function getTheme(id: string | null): SupermarketTheme {
+  return getSupermarket(id)?.theme ?? NEUTRAL_THEME;
 }
 
 export function ShoppingList({ groups, week }: ShoppingListProps) {

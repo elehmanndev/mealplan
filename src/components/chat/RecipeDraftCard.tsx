@@ -52,12 +52,6 @@ function formatQty(n: number): string {
   return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-const SUPERMARKET_CYCLE: (string | null)[] = [...SUPERMARKETS.map((s) => s.id), null];
-function nextSupermarket(current: string | null | undefined): string | null {
-  const idx = SUPERMARKET_CYCLE.indexOf(current ?? null);
-  return SUPERMARKET_CYCLE[(idx + 1) % SUPERMARKET_CYCLE.length] ?? null;
-}
-
 export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, saved }: Props) {
   const [ingredients, setIngredients] = useState<RecipeDraftIngredient[]>(draft.ingredients);
   const onChangeRef = useRef(onChange);
@@ -200,21 +194,31 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
                 >
                   <Plus size={10} strokeWidth={2.5} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    patchIngredient(i, { supermarket: nextSupermarket(ing.supermarket) })
-                  }
-                  aria-label={`Supermercado: ${sm?.label ?? 'sin asignar'} (toca para cambiar)`}
+                <span
                   className={[
-                    'ml-2 px-2.5 h-7 rounded-full text-[11px] font-semibold tracking-tight transition-all active:scale-95 flex items-center min-w-[60px] justify-center',
+                    'relative ml-2 inline-flex items-center justify-center min-w-[60px] h-7 px-2.5 rounded-full text-[11px] font-semibold tracking-tight transition-colors',
                     sm
                       ? `${sm.pillClass} shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]`
                       : 'bg-surface-2/60 text-text-muted/60',
                   ].join(' ')}
                 >
-                  {sm?.label ?? '—'}
-                </button>
+                  <span aria-hidden="true">{sm?.label ?? '—'}</span>
+                  <select
+                    value={ing.supermarket ?? ''}
+                    onChange={(e) =>
+                      patchIngredient(i, { supermarket: e.target.value || null })
+                    }
+                    aria-label={`Supermercado de ${ing.name}`}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none bg-transparent"
+                  >
+                    <option value="">Sin asignar</option>
+                    {SUPERMARKETS.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </div>
             </li>
           );

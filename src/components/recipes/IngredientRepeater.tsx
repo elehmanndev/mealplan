@@ -220,23 +220,21 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           ))}
         </select>
       )}
-      <div className="flex gap-2 flex-wrap">
-        {SUPERMARKETS.map((sm) => {
-          const selected = row.supermarket === sm.id;
-          return (
-            <button
-              key={sm.id}
-              type="button"
-              onClick={() => onPatch({ supermarket: selected ? null : sm.id })}
-              className={[
-                'px-3 py-1 rounded-full text-xs font-semibold transition-all active:scale-95',
-                selected ? sm.pillClass : 'bg-surface-2 text-text-muted',
-              ].join(' ')}
-            >
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-text-muted shrink-0">Supermercado</label>
+        <select
+          value={row.supermarket ?? ''}
+          onChange={(e) => onPatch({ supermarket: e.target.value || null })}
+          className={`${inputCls} flex-1`}
+        >
+          <option value="">Sin asignar</option>
+          {SUPERMARKETS.map((sm) => (
+            <option key={sm.id} value={sm.id}>
               {sm.label}
-            </button>
-          );
-        })}
+            </option>
+          ))}
+        </select>
+        {row.supermarket && <SupermarketPill id={row.supermarket} />}
       </div>
     </div>
   );

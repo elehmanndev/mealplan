@@ -27,7 +27,7 @@ const EXAMPLE_JSON = `{
 
 const CHATGPT_PROMPT = `Busca en tu memoria y en nuestras conversaciones anteriores todas las recetas que hayamos hablado o que sepas que cocino. Conviértelas a este formato JSON y devuélveme SOLO el JSON, sin markdown, sin bloques de código y sin explicaciones. Usa comillas dobles rectas ("), nunca comillas tipográficas (" ").
 
-Si algún ingrediente lo compro en un supermercado que no esté en la lista permitida (mercadona, lidl, bon-area, aldi), NO inventes ni mapees: pregúntame antes a qué supermercado de la lista debería asignarlo.
+Si algún ingrediente lo compro en un supermercado que no esté en la lista permitida (mercadona, carrefour, lidl, dia, alcampo, consum, eroski, aldi, bonpreu, esclat, condis, spar, caprabo, la-sirena, bon-area), NO inventes ni mapees: pregúntame antes a qué supermercado de la lista debería asignarlo.
 
 Esquema:
 {
@@ -45,7 +45,7 @@ Esquema:
           "quantity": 200,
           "unit": "uno de: g, kg, ml, l, ud, pieza, unidad, paquete, lata, bandeja, bolsa, brick, cucharada, cucharadita, pellizco, taza, diente, al_gusto",
           "shopping_category": "uno de: verduras, frutas, carne, pescado, lacteos, panaderia, despensa, congelado, bebidas, otros",
-          "supermarket": "uno de: mercadona, lidl, bon-area, aldi (siempre uno; elige el más probable)"
+          "supermarket": "uno de: mercadona, carrefour, lidl, dia, alcampo, consum, eroski, aldi, bonpreu, esclat, condis, spar, caprabo, la-sirena, bon-area (siempre uno; elige el más probable)"
         }
       ]
     }
@@ -245,8 +245,9 @@ export function DataActions() {
                 Tuppers, Verano, Invierno
               </div>
               <div>
-                <span className="text-text font-medium">supermarket:</span> mercadona, lidl, bon-area,
-                aldi
+                <span className="text-text font-medium">supermarket:</span> mercadona, carrefour,
+                lidl, dia, alcampo, consum, eroski, aldi, bonpreu, esclat, condis, spar, caprabo,
+                la-sirena, bon-area
               </div>
               <pre className="mt-2 p-3 bg-surface rounded-lg overflow-x-auto text-[11px] leading-relaxed text-text">
 {EXAMPLE_JSON}
