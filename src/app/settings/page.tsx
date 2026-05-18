@@ -89,9 +89,24 @@ export default async function SettingsPage() {
           <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
             Acerca de
           </h2>
+          <Link
+            href="/?tour=1"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
+          >
+            <span className="text-xl shrink-0" aria-hidden>👋</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-text">Ver tutorial</div>
+              <div className="text-xs text-text-muted truncate">Repasa cómo funciona en 4 pasos</div>
+            </div>
+          </Link>
           <div className="bg-surface rounded-2xl px-4 py-3 flex items-center justify-between">
             <span className="text-text-muted">Versión</span>
             <span className="font-mono text-sm text-text">{pkg.version}</span>
+          </div>
+          <div className="flex items-center gap-3 px-1 pt-1 text-xs text-text-muted">
+            <Link href="/privacy" className="hover:text-text transition-colors">Privacidad</Link>
+            <span className="opacity-40">·</span>
+            <Link href="/terms" className="hover:text-text transition-colors">Términos</Link>
           </div>
         </section>
       </div>

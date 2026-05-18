@@ -89,6 +89,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <p className="text-[11px] text-text-muted/80 text-center leading-relaxed max-w-[280px]">
           Solo pedimos a Google tu nombre y tu correo — nada más.
         </p>
+
+        <div className="flex items-center gap-3 text-[11px] text-text-muted/70">
+          <a href="/privacy" className="hover:text-text-muted transition-colors">Privacidad</a>
+          <span className="opacity-40">·</span>
+          <a href="/terms" className="hover:text-text-muted transition-colors">Términos</a>
+        </div>
       </div>
 
       <a

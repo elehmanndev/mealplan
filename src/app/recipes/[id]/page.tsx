@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { getRecipe } from '@/models/recipe';
+import { getRecipe, getRecipeShareToken } from '@/models/recipe';
 import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { FavoriteToggle } from '@/components/recipes/FavoriteToggle';
@@ -22,6 +22,7 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
   if (!Number.isFinite(recipeId)) notFound();
   const recipe = getRecipe(householdId, recipeId);
   if (!recipe) notFound();
+  const shareToken = getRecipeShareToken(householdId, recipe.id);
 
   return (
     <main className="min-h-dvh pb-32">
@@ -36,7 +37,11 @@ export default async function RecipeDetailPage({ params }: RecipeDetailPageProps
           </Link>
           <div className="flex-1" aria-hidden />
           <FavoriteToggle recipeId={recipe.id} initial={recipe.is_favorite} />
-          <RecipeMenu recipeId={recipe.id} />
+          <RecipeMenu
+            recipeId={recipe.id}
+            recipeName={recipe.name}
+            initialShareToken={shareToken}
+          />
         </div>
       </header>
 

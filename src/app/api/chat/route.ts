@@ -11,6 +11,7 @@ import { SUPERMARKETS } from '@/lib/supermarkets';
 import { db } from '@/lib/db';
 import { checkAndIncrement, PER_USER_DAILY_CAP } from '@/lib/chat-rate-limit';
 import { getCurrentUser } from '@/lib/auth';
+import { extractFirstUrl, fetchRecipeUrl } from '@/lib/fetch-recipe-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -394,8 +395,60 @@ export async function POST(request: Request) {
     );
   }
 
+  // If the last user message contains a URL, fetch the page and prepend the
+  // extracted text as context — Gemini then converts it to a recipe JSON
+  // draft via the same tool-calling path used for typed-in recipes. URL
+  // fetch failures abort the request and refund the rate-limit slot (we
+  // don't want to burn a daily message on a 404).
+  const messages = [...parsed.data.messages];
+  const lastIdx = messages.length - 1;
+  const lastMessage = lastIdx >= 0 ? messages[lastIdx] : null;
+  if (lastMessage?.role === 'user') {
+    const url = extractFirstUrl(lastMessage.content);
+    if (url) {
+      const fetched = await fetchRecipeUrl(url);
+      if (fetched.ok) {
+        const trimmedUserText = lastMessage.content.replace(url, '').trim();
+        const augmented =
+          `[El usuario ha pegado un enlace. He descargado el contenido por ti — ` +
+          `úsalo para crear la receta. NO le pidas que copie y pegue ` +
+          `manualmente, ya lo tienes.]\n\n` +
+          `URL: ${fetched.url}\n` +
+          (fetched.title ? `Título: ${fetched.title}\n` : '') +
+          `Contenido extraído (puede incluir texto irrelevante; filtra tú):\n` +
+          `"""\n${fetched.text}\n"""\n\n` +
+          (trimmedUserText ? `Instrucción adicional del usuario: ${trimmedUserText}` : 'Genera la receta a partir del contenido anterior.');
+        messages[lastIdx] = { role: 'user', content: augmented };
+      } else {
+        // Refund the rate-limit slot — we never made the Gemini call.
+        db.prepare(
+          'UPDATE chat_usage SET count = MAX(count - 1, 0) WHERE user_id = ? AND date = ?',
+        ).run(user.id, new Date().toISOString().slice(0, 10));
+        const message = (() => {
+          switch (fetched.reason) {
+            case 'private-host':
+            case 'invalid-url':
+              return 'Ese enlace no parece válido.';
+            case 'too-large':
+              return 'La página es demasiado grande para descargarla. Pásame el texto de la receta directamente.';
+            case 'timeout':
+              return 'La página tarda mucho en responder. Vuelve a intentarlo o copia el texto.';
+            case 'wrong-content-type':
+              return 'Ese enlace no es una página HTML. Copia el texto de la receta a mano y te la monto.';
+            default:
+              return 'No he podido descargar la página. Copia el texto de la receta a mano y te la monto.';
+          }
+        })();
+        return new Response(sseEvent('error', { message }), {
+          status: 400,
+          headers: { 'Content-Type': 'text/event-stream' },
+        });
+      }
+    }
+  }
+
   const ai = new GoogleGenAI({ apiKey });
-  const contents: Content[] = toGeminiContents(parsed.data.messages);
+  const contents: Content[] = toGeminiContents(messages);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {

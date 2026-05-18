@@ -1,8 +1,10 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode, useEffect } from 'react';
+import { Suspense, useState, type ReactNode, useEffect } from 'react';
 import { ToastProvider } from '@/components/ui/Toast';
+import { PwaInstallBanner } from '@/components/ui/PwaInstallBanner';
+import { OnboardingTour } from '@/components/ui/OnboardingTour';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -26,7 +28,13 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        {children}
+        <PwaInstallBanner />
+        <Suspense fallback={null}>
+          <OnboardingTour />
+        </Suspense>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

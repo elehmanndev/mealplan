@@ -44,6 +44,55 @@ function replaceTags(recipeId: number, tags: string[]) {
 // recipe row. Writes happen inside transactions that have already verified
 // the parent recipe belongs to the caller's household.
 
+interface RecipeRowWithToken extends RecipeRow {
+  share_token: string | null;
+}
+
+export function getRecipeShareToken(householdId: number, id: number): string | null {
+  const row = db
+    .prepare('SELECT share_token FROM recipes WHERE id = ? AND household_id = ?')
+    .get(id, householdId) as { share_token: string | null } | undefined;
+  return row?.share_token ?? null;
+}
+
+export function setRecipeShareToken(
+  householdId: number,
+  id: number,
+  token: string | null,
+): void {
+  const res = db
+    .prepare('UPDATE recipes SET share_token = ? WHERE id = ? AND household_id = ?')
+    .run(token, id, householdId);
+  if (res.changes === 0) throw new Error('Recipe not found in this household');
+}
+
+/**
+ * Look up a recipe by its share token without requiring auth. Returns the
+ * full recipe with ingredients, or null if the token doesn't match (revoked
+ * or never existed). The household is intentionally NOT exposed.
+ */
+export function getRecipeByShareToken(token: string): RecipeWithIngredients | null {
+  const row = db
+    .prepare('SELECT * FROM recipes WHERE share_token = ?')
+    .get(token) as RecipeRowWithToken | undefined;
+  if (!row) return null;
+  const ings = db
+    .prepare(
+      `SELECT ri.ingredient_id, i.name, ri.quantity, ri.unit, i.shopping_category, i.supermarket
+       FROM recipe_ingredients ri JOIN ingredients i ON i.id = ri.ingredient_id
+       WHERE ri.recipe_id = ? ORDER BY i.name`,
+    )
+    .all(row.id) as RecipeIngredient[];
+  return { ...rowToRecipe(row), ingredients: ings };
+}
+
+export function countRecipes(householdId: number): number {
+  const row = db
+    .prepare('SELECT COUNT(*) as c FROM recipes WHERE household_id = ?')
+    .get(householdId) as { c: number };
+  return row.c;
+}
+
 export function listRecipes(
   householdId: number,
   opts: { search?: string; tags?: string[]; favoritesOnly?: boolean } = {},
