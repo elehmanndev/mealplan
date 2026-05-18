@@ -409,15 +409,17 @@ export async function POST(request: Request) {
       const fetched = await fetchRecipeUrl(url);
       if (fetched.ok) {
         const trimmedUserText = lastMessage.content.replace(url, '').trim();
+        // Reframe the message so Gemini sees a normal "make me this recipe"
+        // user request, with the fetched content inline as the recipe data.
+        // Earlier framing (meta-bracket + """fences""") seemed to confuse the
+        // model into ignoring the request entirely.
         const augmented =
-          `[El usuario ha pegado un enlace. He descargado el contenido por ti — ` +
-          `úsalo para crear la receta. NO le pidas que copie y pegue ` +
-          `manualmente, ya lo tienes.]\n\n` +
-          `URL: ${fetched.url}\n` +
-          (fetched.title ? `Título: ${fetched.title}\n` : '') +
-          `Contenido extraído (puede incluir texto irrelevante; filtra tú):\n` +
-          `"""\n${fetched.text}\n"""\n\n` +
-          (trimmedUserText ? `Instrucción adicional del usuario: ${trimmedUserText}` : 'Genera la receta a partir del contenido anterior.');
+          `Hazme esta receta` +
+          (fetched.title ? ` — "${fetched.title}"` : '') +
+          ` (la he sacado de ${new URL(fetched.url).hostname}). ` +
+          `Aquí tienes la información ya extraída:\n\n` +
+          fetched.text +
+          (trimmedUserText ? `\n\nNota mía: ${trimmedUserText}` : '');
         messages[lastIdx] = { role: 'user', content: augmented };
       } else {
         // Refund the rate-limit slot — we never made the Gemini call.
