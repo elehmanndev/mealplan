@@ -176,7 +176,8 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
                       value={ing.unit}
                       onChange={(e) => patchIngredient(i, { unit: e.target.value as Unit })}
                       aria-label={`Unidad de ${ing.name}`}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none bg-transparent"
+                      style={{ colorScheme: 'light' }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none bg-white text-slate-900"
                     >
                       {UNITS.map((u) => (
                         <option key={u} value={u}>
@@ -209,7 +210,8 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
                       patchIngredient(i, { supermarket: e.target.value || null })
                     }
                     aria-label={`Supermercado de ${ing.name}`}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none bg-transparent"
+                    style={{ colorScheme: 'light' }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none bg-white text-slate-900"
                   >
                     <option value="">Sin asignar</option>
                     {SUPERMARKETS.map((s) => (

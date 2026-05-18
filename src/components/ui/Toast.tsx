@@ -67,7 +67,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               ].join(' ')}
             >
               <Icon size={18} className="shrink-0" />
-              <span className="text-sm font-medium">{t.message}</span>
+              <span className="text-sm font-medium whitespace-nowrap truncate">{t.message}</span>
               <button
                 type="button"
                 onClick={() => dismiss(t.id)}
