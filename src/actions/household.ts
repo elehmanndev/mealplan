@@ -118,6 +118,47 @@ export async function redeemInviteAction(rawToken: string): Promise<RedeemInvite
   return { ok: true, householdId: invite.household_id, alreadyMember: false };
 }
 
+/**
+ * Owner-only: rename the active household. Same name validation as creation.
+ */
+export async function renameHouseholdAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  if (user.householdId == null) throw new Error('No active household');
+  if (user.role !== 'owner') throw new Error('Solo el propietario puede renombrar');
+  const name = HouseholdNameInput.parse(formData.get('name'));
+  db.prepare('UPDATE households SET name = ? WHERE id = ?').run(name, user.householdId);
+  revalidatePath('/settings/household');
+  revalidatePath('/settings');
+}
+
+/**
+ * Owner-only: remove a member from the active household. Guards:
+ *   - can't remove yourself (use a future "leave household" flow instead)
+ *   - can't remove another owner (defensive — multi-owner not used in v1
+ *     but the check costs nothing)
+ *
+ * Removing the membership row leaves the user's account intact; they just
+ * lose access to this household and get bounced to /welcome the next time
+ * they hit a gated page.
+ */
+export async function removeMemberAction(targetUserId: number): Promise<void> {
+  const user = await requireUser();
+  if (user.householdId == null) throw new Error('No active household');
+  if (user.role !== 'owner') throw new Error('Solo el propietario puede expulsar miembros');
+  if (targetUserId === user.id) throw new Error('No puedes expulsarte a ti mismo');
+
+  const target = db
+    .prepare('SELECT role FROM memberships WHERE user_id = ? AND household_id = ?')
+    .get(targetUserId, user.householdId) as { role: 'owner' | 'member' } | undefined;
+  if (!target) throw new Error('Ese miembro ya no está en la casa');
+  if (target.role === 'owner') throw new Error('No puedes expulsar a otro propietario');
+
+  db.prepare(
+    'DELETE FROM memberships WHERE user_id = ? AND household_id = ?',
+  ).run(targetUserId, user.householdId);
+  revalidatePath('/settings/household');
+}
+
 export type HouseholdMember = {
   userId: number;
   email: string;

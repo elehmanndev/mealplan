@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { listMembersForCurrentHousehold } from '@/actions/household';
 import { InviteButton } from '@/components/settings/InviteButton';
+import { HouseholdNameEditor } from '@/components/settings/HouseholdNameEditor';
+import { RemoveMemberButton } from '@/components/settings/RemoveMemberButton';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { getCurrentWeek } from '@/lib/week';
 
@@ -43,9 +45,7 @@ export default async function HouseholdSettingsPage() {
           <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
             Nombre
           </h2>
-          <div className="bg-surface rounded-2xl px-4 py-3">
-            <div className="text-text font-medium">{household?.name ?? '—'}</div>
-          </div>
+          <HouseholdNameEditor initialName={household?.name ?? ''} canEdit={isOwner} />
         </section>
 
         <section className="flex flex-col gap-3">
@@ -53,22 +53,26 @@ export default async function HouseholdSettingsPage() {
             Miembros ({members.length})
           </h2>
           <ul className="bg-surface rounded-2xl divide-y divide-[color:var(--glass-border)] overflow-hidden">
-            {members.map((m) => (
-              <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
-                <Avatar name={m.name ?? m.email} image={m.image} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-text font-medium truncate">
-                    {m.name?.trim() || m.email}
+            {members.map((m) => {
+              const isSelf = m.userId === user.id;
+              const canKick = isOwner && !isSelf && m.role !== 'owner';
+              const label = m.name?.trim() || m.email;
+              return (
+                <li key={m.userId} className="flex items-center gap-3 px-4 py-3">
+                  <Avatar name={label} image={m.image} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-text font-medium truncate">{label}</div>
+                    <div className="text-xs text-text-muted truncate">{m.email}</div>
                   </div>
-                  <div className="text-xs text-text-muted truncate">{m.email}</div>
-                </div>
-                {m.role === 'owner' && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-accent bg-accent/15 rounded-full px-2 py-0.5">
-                    Propietario
-                  </span>
-                )}
-              </li>
-            ))}
+                  {m.role === 'owner' && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-accent bg-accent/15 rounded-full px-2 py-0.5">
+                      Propietario
+                    </span>
+                  )}
+                  {canKick && <RemoveMemberButton userId={m.userId} memberLabel={label} />}
+                </li>
+              );
+            })}
           </ul>
         </section>
 
