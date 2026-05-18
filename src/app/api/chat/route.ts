@@ -513,7 +513,11 @@ export async function POST(request: Request) {
                 functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO },
               },
               temperature: 0.3,
-              maxOutputTokens: 1500,
+              // Big enough to emit a save_recipe tool call with 20+
+              // ingredients. Was 1500 — a Hello Fresh recipe with 15
+              // ingredients was hitting that limit mid-call and the
+              // model returned nothing at all.
+              maxOutputTokens: 4000,
             },
           });
 
@@ -521,6 +525,11 @@ export async function POST(request: Request) {
           const accumulatedCalls: { name: string; args: Record<string, unknown> }[] = [];
           const roundDeadline = Date.now() + PER_STREAM_TIMEOUT_MS;
           let timedOut = false;
+          // Capture the last chunk's finishReason / safetyRatings so we can
+          // log them if the round produces nothing — empty Gemini responses
+          // are almost always one of MAX_TOKENS / SAFETY / OTHER.
+          let lastFinishReason: string | undefined;
+          let lastSafety: unknown;
 
           for await (const chunk of stream) {
             if (Date.now() > roundDeadline) {
@@ -539,6 +548,28 @@ export async function POST(request: Request) {
               totalTextStreamed += text.length;
               send('text', { delta: text });
             }
+            // Track candidate-level metadata from every chunk — Gemini puts
+            // finishReason on the last chunk with content; the safetyRatings
+            // can show up on any chunk.
+            const cand = chunk.candidates?.[0];
+            if (cand?.finishReason) lastFinishReason = cand.finishReason;
+            if (cand?.safetyRatings) lastSafety = cand.safetyRatings;
+          }
+
+          if (accumulatedCalls.length === 0 && !accumulatedText) {
+            // Log only when we got nothing back — gives us a single line in
+            // docker logs per dead Gemini response with the why.
+            console.warn(
+              '[chat] empty Gemini response',
+              JSON.stringify({
+                round,
+                user_id: user.id,
+                finishReason: lastFinishReason,
+                safety: lastSafety,
+                urlHost: urlContext?.hostname ?? null,
+                lastMessageLen: messages[lastIdx]?.content.length ?? 0,
+              }),
+            );
           }
 
           if (timedOut && accumulatedCalls.length === 0 && !accumulatedText) {
