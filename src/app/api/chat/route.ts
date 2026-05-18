@@ -350,6 +350,41 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+// Fallback message picker — used when Gemini returns nothing usable.
+// Different shapes for different failure flavors, plus per-flavor variants
+// chosen at random so a user retrying the same broken thing doesn't see
+// the identical error twice in a row.
+const FALLBACK_URL = [
+  (h: string) =>
+    `He leído la receta de ${h}, pero la IA se ha bloqueado al procesarla. Vuelve a intentarlo, o pégame el texto a mano.`,
+  (h: string) =>
+    `La página de ${h} la tengo, pero el chef digital se ha quedado mudo. Reintenta en un segundo.`,
+  (h: string) =>
+    `La descarga de ${h} fue bien, la IA no ha querido cooperar. Reintenta o pégame los ingredientes y los pasos.`,
+];
+const FALLBACK_VALIDATION = [
+  'Se me ha liado algo. Cuéntamelo otra vez, anda.',
+  'No me cuadran los datos. ¿Me lo repites en otro orden?',
+  'Ahí me he perdido. Dímelo más claro y volvemos.',
+];
+const FALLBACK_GENERIC = [
+  'Se me ha ido el santo al cielo. Vuelve a probar.',
+  'Hoy no me sale. Reintenta, anda.',
+  'La cabeza no me da para esta. Reformúlalo y seguimos.',
+  'La IA ha decidido tomarse un café. Reintenta en un momento.',
+];
+function pickFallbackMessage(args: {
+  urlHost: string | null;
+  lastValidationFailedModelDomain: boolean;
+}): string {
+  if (args.urlHost) {
+    const pick = FALLBACK_URL[Math.floor(Math.random() * FALLBACK_URL.length)];
+    return pick(args.urlHost);
+  }
+  const pool = args.lastValidationFailedModelDomain ? FALLBACK_VALIDATION : FALLBACK_GENERIC;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -403,6 +438,7 @@ export async function POST(request: Request) {
   const messages = [...parsed.data.messages];
   const lastIdx = messages.length - 1;
   const lastMessage = lastIdx >= 0 ? messages[lastIdx] : null;
+  let urlContext: { hostname: string } | null = null;
   if (lastMessage?.role === 'user') {
     const url = extractFirstUrl(lastMessage.content);
     if (url) {
@@ -413,14 +449,16 @@ export async function POST(request: Request) {
         // user request, with the fetched content inline as the recipe data.
         // Earlier framing (meta-bracket + """fences""") seemed to confuse the
         // model into ignoring the request entirely.
+        const hostname = new URL(fetched.url).hostname;
         const augmented =
           `Hazme esta receta` +
           (fetched.title ? ` — "${fetched.title}"` : '') +
-          ` (la he sacado de ${new URL(fetched.url).hostname}). ` +
+          ` (la he sacado de ${hostname}). ` +
           `Aquí tienes la información ya extraída:\n\n` +
           fetched.text +
           (trimmedUserText ? `\n\nNota mía: ${trimmedUserText}` : '');
         messages[lastIdx] = { role: 'user', content: augmented };
+        urlContext = { hostname };
       } else {
         // Refund the rate-limit slot — we never made the Gemini call.
         db.prepare(
@@ -607,11 +645,20 @@ export async function POST(request: Request) {
           }
         }
 
-        if (totalTextStreamed === 0) {
-          const fallback = lastValidationFailedModelDomain
-            ? 'Se me ha liado algo. Cuéntamelo otra vez, anda.'
-            : 'Se me ha ido el santo al cielo. Vuelve a probar.';
-          send('text', { delta: fallback });
+        if (totalTextStreamed === 0 && !draftEmitted) {
+          // Refund the rate-limit slot — Gemini gave us nothing usable, so
+          // we shouldn't have charged the user. Best-effort; if the DB write
+          // fails, the worst case is a slightly-undercredited counter.
+          try {
+            db.prepare(
+              'UPDATE chat_usage SET count = MAX(count - 1, 0) WHERE user_id = ? AND date = ?',
+            ).run(user.id, new Date().toISOString().slice(0, 10));
+            limit.used = Math.max(0, limit.used - 1);
+            limit.remaining = Math.min(PER_USER_DAILY_CAP, limit.remaining + 1);
+          } catch {
+            // ignore
+          }
+          send('text', { delta: pickFallbackMessage({ urlHost: urlContext?.hostname ?? null, lastValidationFailedModelDomain }) });
         }
         send('done', { used: limit.used, remaining: limit.remaining, cap: PER_USER_DAILY_CAP });
       } catch (err) {
