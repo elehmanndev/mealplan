@@ -21,6 +21,7 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
 
   return (
     <main className="min-h-dvh pb-24">
+      <h1 className="sr-only">Lista de la compra</h1>
       <ShoppingHeader week={week} />
 
       <div className="px-4 pt-4">

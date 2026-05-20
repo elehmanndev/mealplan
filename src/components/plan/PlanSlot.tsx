@@ -67,12 +67,12 @@ export function PlanSlot({ date, slot, entries, isToday, onTapEmpty, onTapEntry 
           onClick={onTapEmpty}
           aria-label="Añadir otra receta a este slot"
           className={[
-            'w-6 shrink-0 rounded-xl border border-dashed flex items-center justify-center',
+            'w-9 shrink-0 rounded-xl border border-dashed flex items-center justify-center',
             'text-text-muted active:scale-[0.98] transition-transform',
             isToday ? 'border-accent/40 bg-accent/5' : 'border-neutral-800 bg-surface/40',
           ].join(' ')}
         >
-          <Plus size={14} />
+          <Plus size={16} />
         </button>
       </div>
     </div>
