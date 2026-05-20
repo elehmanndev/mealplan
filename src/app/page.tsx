@@ -2,7 +2,7 @@ import { listWeekPlan } from '@/models/plan';
 import { countRecipes } from '@/models/recipe';
 import { getCurrentWeek } from '@/lib/week';
 import { BottomNav } from '@/components/ui/BottomNav';
-import { WeekView } from '@/components/plan/WeekView';
+import { WeekView } from '@/components/plan/WeekViewDynamic';
 import { EmptyHouseholdState } from '@/components/plan/EmptyHouseholdState';
 import { requireHouseholdIdOrRedirect } from '@/lib/auth';
 
@@ -21,6 +21,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <main className="flex flex-col min-h-dvh pb-24">
+      <h1 className="sr-only">Plan semanal</h1>
       {recipeCount === 0 && <EmptyHouseholdState />}
       <WeekView week={week} entries={entries} />
       <BottomNav currentWeek={week} />

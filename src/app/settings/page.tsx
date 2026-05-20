@@ -103,10 +103,20 @@ export default async function SettingsPage() {
             <span className="text-text-muted">Versión</span>
             <span className="font-mono text-sm text-text">{pkg.version}</span>
           </div>
-          <div className="flex items-center gap-3 px-1 pt-1 text-xs text-text-muted">
-            <Link href="/privacy" className="hover:text-text transition-colors">Privacidad</Link>
-            <span className="opacity-40">·</span>
-            <Link href="/terms" className="hover:text-text transition-colors">Términos</Link>
+          <div className="flex items-center px-1 pt-1 text-xs text-text-muted">
+            <Link
+              href="/privacy"
+              className="inline-flex items-center min-h-[44px] px-2 hover:text-text transition-colors"
+            >
+              Privacidad
+            </Link>
+            <span aria-hidden className="opacity-40 px-1">·</span>
+            <Link
+              href="/terms"
+              className="inline-flex items-center min-h-[44px] px-2 hover:text-text transition-colors"
+            >
+              Términos
+            </Link>
           </div>
         </section>
       </div>
