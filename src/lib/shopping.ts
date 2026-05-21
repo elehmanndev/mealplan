@@ -76,7 +76,12 @@ export function generateShoppingList(
       // sum into the shopping list — the user has them already.
       if (ing.is_pantry) continue;
 
-      const key = `${ing.id}-${ing.unit}`;
+      // `ud`, `pieza`, `unidad` all mean "one discrete piece" — the seed catalog
+      // uses `ud` but recipes imported via chat/scraping may carry either alias,
+      // so collapse them before aggregating or the list shows two lines for the
+      // same ingredient (e.g. "Zanahoria 2 ud" + "Zanahoria 6 pieza").
+      const unit = canonicalUnit(ing.unit);
+      const key = `${ing.id}-${unit}`;
       const existing = totals.get(key);
       if (existing) {
         existing.quantityNumber += ing.quantity * ratio;
@@ -88,9 +93,9 @@ export function generateShoppingList(
           id: ing.id,
           ingredientId: ing.id,
           name: ing.name,
-          quantity: quantizeForUnit(q, ing.unit as Unit),
+          quantity: quantizeForUnit(q, unit as Unit),
           quantityNumber: q,
-          unit: ing.unit,
+          unit,
           category: ing.shopping_category,
           supermarket: ing.supermarket ?? null,
           checked: false,
@@ -148,6 +153,15 @@ export function generateShoppingList(
     .filter((g) => g.items.length > 0);
 
   return groups;
+}
+
+const UNIT_ALIASES: Record<string, Unit> = {
+  pieza: 'ud',
+  unidad: 'ud',
+};
+
+function canonicalUnit(unit: string): string {
+  return UNIT_ALIASES[unit] ?? unit;
 }
 
 // For packaged units (lata, bandeja, bolsa, brick, paquete, ud, pieza, unidad)

@@ -129,6 +129,36 @@ describe('generateShoppingList', () => {
     expect(allItems.find((i) => i.name === 'TestHarina')?.quantity).toBe(100);
   });
 
+  it('merges equivalent discrete-unit aliases (ud / pieza / unidad)', async () => {
+    // Imported / chat-generated recipes can record the same "one piece" unit as
+    // any of `ud`, `pieza`, or `unidad`. The shopping list must collapse them
+    // into a single line instead of showing "Zanahoria 2 ud" + "Zanahoria 6 pieza".
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(`
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1400, ${HID}, 'Recipe Ud', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1401, ${HID}, 'Recipe Pieza', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1402, ${HID}, 'Recipe Unidad', 2);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5400, 'TestZanahoria', 'ud', 'verduras', 'lidl');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1400, 5400, 2, 'ud');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1401, 5400, 6, 'pieza');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1402, 5400, 1, 'unidad');
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-04-13', 'comida', 1400, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-04-13', 'cena', 1401, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-04-14', 'comida', 1402, 2);
+    `);
+
+    // Saturday-week opening on 2026-04-11 covers Mon 2026-04-13 + Tue 2026-04-14.
+    const groups = generateShoppingList(HID, '2026-04-11');
+    const allItems = groups.flatMap((g) => g.items);
+    const zanahorias = allItems.filter((i) => i.name === 'TestZanahoria');
+    expect(zanahorias).toHaveLength(1);
+    expect(zanahorias[0].quantity).toBe(9);
+    expect(zanahorias[0].unit).toBe('ud');
+  });
+
   it('aggregates same ingredient across multiple plan entries in the same slot', async () => {
     // Multi-entry-per-slot regression: if Ensaladilla and Pollastre both appear
     // in the same lunch slot, their shared ingredients must still sum correctly.
