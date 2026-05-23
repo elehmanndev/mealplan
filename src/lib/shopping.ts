@@ -2,12 +2,22 @@ import { db } from './db';
 import { formatDate, getWeekDates } from './week';
 import { SHOPPING_CATEGORIES } from './shopping-types';
 import { SUPERMARKETS } from './supermarkets';
-import { PACKAGED_UNITS } from '@/types';
+import { PACKAGED_UNITS, UNITS } from '@/types';
 import type { Unit } from '@/types';
-import type { ShoppingCategory, ShoppingGroup, ShoppingItem } from './shopping-types';
+import { normalizeIngredientName } from '@/models/ingredient';
+import type { ShoppingCategory, ShoppingGroup, ShoppingItem, ShoppingItemPart } from './shopping-types';
+
+// Catalog rows whose normalized lower-cased name matches share a shopping
+// row. Stripping packaging prefix + casefold means "Aceitunas negras",
+// "Lata aceitunas negras", and "aceitunas negras" all collapse to the same
+// key so the user sees one line in the list even when the catalog still
+// holds dupes from before the normalization fix.
+function dedupKey(name: string): string {
+  return normalizeIngredientName(name).toLowerCase();
+}
 
 export { SHOPPING_CATEGORIES };
-export type { ShoppingCategory, ShoppingGroup, ShoppingItem };
+export type { ShoppingCategory, ShoppingGroup, ShoppingItem, ShoppingItemPart };
 
 interface MealRow {
   servings: number;
@@ -59,7 +69,29 @@ export function generateShoppingList(
     )
     .all(householdId, start, end) as MealRow[];
 
-  const totals = new Map<string, ShoppingItem & { quantityNumber: number }>();
+  interface AggregatedIngredient {
+    // Display name comes from the catalog row whose stored name is already
+    // canonical (no packaging prefix); falls back to the lowest id if none.
+    displayName: string;
+    displayCategory: ShoppingCategory;
+    displaySupermarket: string | null;
+    // Tie-break helpers — the canonical row's id is preferred for the React
+    // key + first-cited identity. All ingredient ids end up in ingredientIds.
+    bestRowId: number;
+    bestRowIsCanonical: boolean;
+    ingredientIds: Set<number>;
+    checked: boolean;
+    removed: boolean;
+    // Each entry is the running raw total for one canonical unit. We quantize
+    // only at the end so repeated additions don't compound rounding error.
+    perUnit: Map<string, number>;
+  }
+
+  // Key by normalized name (case-insensitive) instead of ingredient_id so
+  // legacy duplicate catalog rows ("Aceitunas negras" + "Lata aceitunas
+  // negras") still produce one shopping line, with both contributions
+  // appearing as separate parts (e.g. "100 g + 1 lata").
+  const totals = new Map<string, AggregatedIngredient>();
 
   for (const meal of meals) {
     const ratio = meal.servings / meal.base_servings;
@@ -76,32 +108,42 @@ export function generateShoppingList(
       // sum into the shopping list — the user has them already.
       if (ing.is_pantry) continue;
 
-      // `ud`, `pieza`, `unidad` all mean "one discrete piece" — the seed catalog
-      // uses `ud` but recipes imported via chat/scraping may carry either alias,
-      // so collapse them before aggregating or the list shows two lines for the
-      // same ingredient (e.g. "Zanahoria 2 ud" + "Zanahoria 6 pieza").
+      // `ud`, `pieza`, `unidad` all mean "one discrete piece" — collapse to
+      // `ud` so the same ingredient doesn't produce parallel parts.
       const unit = canonicalUnit(ing.unit);
-      const key = `${ing.id}-${unit}`;
-      const existing = totals.get(key);
-      if (existing) {
-        existing.quantityNumber += ing.quantity * ratio;
-        existing.quantity = quantizeForUnit(existing.quantityNumber, existing.unit as Unit);
-      } else {
-        const q = ing.quantity * ratio;
-        totals.set(key, {
-          kind: 'recipe',
-          id: ing.id,
-          ingredientId: ing.id,
-          name: ing.name,
-          quantity: quantizeForUnit(q, unit as Unit),
-          quantityNumber: q,
-          unit,
-          category: ing.shopping_category,
-          supermarket: ing.supermarket ?? null,
+      const key = dedupKey(ing.name);
+      const isCanonical = normalizeIngredientName(ing.name) === ing.name.trim();
+      let entry = totals.get(key);
+      if (!entry) {
+        entry = {
+          displayName: normalizeIngredientName(ing.name),
+          displayCategory: ing.shopping_category,
+          displaySupermarket: ing.supermarket ?? null,
+          bestRowId: ing.id,
+          bestRowIsCanonical: isCanonical,
+          ingredientIds: new Set([ing.id]),
           checked: false,
           removed: false,
-        });
+          perUnit: new Map(),
+        };
+        totals.set(key, entry);
+      } else {
+        entry.ingredientIds.add(ing.id);
+        // Prefer the catalog row that's already canonical for display fields;
+        // among canonicals (or among non-canonicals) prefer the lowest id so
+        // the rendering stays stable across requests.
+        const preferThisRow =
+          (isCanonical && !entry.bestRowIsCanonical) ||
+          (isCanonical === entry.bestRowIsCanonical && ing.id < entry.bestRowId);
+        if (preferThisRow) {
+          entry.displayName = normalizeIngredientName(ing.name);
+          entry.displayCategory = ing.shopping_category;
+          entry.displaySupermarket = ing.supermarket ?? null;
+          entry.bestRowId = ing.id;
+          entry.bestRowIsCanonical = isCanonical;
+        }
       }
+      entry.perUnit.set(unit, (entry.perUnit.get(unit) ?? 0) + ing.quantity * ratio);
     }
   }
 
@@ -112,13 +154,35 @@ export function generateShoppingList(
     .all(householdId, weekStr) as StateRow[];
   const stateMap = new Map(states.map((s) => [s.ingredient_id, s]));
 
-  for (const item of totals.values()) {
-    const s = stateMap.get(item.ingredientId!);
-    if (s) {
-      item.checked = !!s.checked;
-      item.removed = !!s.removed;
+  for (const entry of totals.values()) {
+    // ANY-checked / ANY-removed across the merged catalog rows. Toggling
+    // writes the new value to every id in the group, so this OR only
+    // matters when state from before the merge was written to a non-best
+    // ingredient_id — we still respect it instead of silently dropping it.
+    for (const id of entry.ingredientIds) {
+      const s = stateMap.get(id);
+      if (!s) continue;
+      if (s.checked) entry.checked = true;
+      if (s.removed) entry.removed = true;
     }
   }
+
+  const recipeItems: ShoppingItem[] = Array.from(totals.values()).map((entry) => ({
+    kind: 'recipe',
+    id: entry.bestRowId,
+    ingredientIds: Array.from(entry.ingredientIds).sort((a, b) => a - b),
+    name: entry.displayName,
+    parts: sortParts(
+      Array.from(entry.perUnit.entries()).map(([unit, qty]) => ({
+        quantity: quantizeForUnit(qty, unit as Unit),
+        unit,
+      })),
+    ),
+    category: entry.displayCategory,
+    supermarket: entry.displaySupermarket,
+    checked: entry.checked,
+    removed: entry.removed,
+  }));
 
   const extras = db
     .prepare(
@@ -130,15 +194,15 @@ export function generateShoppingList(
   const extraItems: ShoppingItem[] = extras.map((e) => ({
     kind: 'extra',
     id: e.id,
+    ingredientIds: [],
     name: e.name,
-    quantity: e.quantity,
-    unit: e.unit,
+    parts: e.quantity != null && e.unit ? [{ quantity: e.quantity, unit: e.unit }] : [],
     category: e.shopping_category,
     checked: !!e.checked,
     removed: !!e.removed,
   }));
 
-  const all = [...totals.values(), ...extraItems];
+  const all = [...recipeItems, ...extraItems];
   const visible = includeRemoved ? all : all.filter((i) => !i.removed);
 
   const supermarketOrder: Array<string | null> = [...SUPERMARKETS.map((s) => s.id), null];
@@ -164,6 +228,16 @@ function canonicalUnit(unit: string): string {
   return UNIT_ALIASES[unit] ?? unit;
 }
 
+// Order parts by UNITS tuple position so mass/volume render before packaged
+// units before cooking measures — "200 g + 1 lata" reads more naturally than
+// "1 lata + 200 g".
+const UNIT_ORDER = new Map<string, number>(UNITS.map((u, i) => [u, i]));
+function sortParts(parts: ShoppingItemPart[]): ShoppingItemPart[] {
+  return parts.sort(
+    (a, b) => (UNIT_ORDER.get(a.unit) ?? 999) - (UNIT_ORDER.get(b.unit) ?? 999),
+  );
+}
+
 // For packaged units (lata, bandeja, bolsa, brick, paquete, ud, pieza, unidad)
 // the user buys whole packages, so totals round UP — buying 1.5 cans means
 // buying 2. For mass/volume (g, ml, kg, l) we just trim to a sensible
@@ -180,7 +254,10 @@ export function shoppingListToText(groups: ShoppingGroup[]): string {
   for (const g of groups) {
     lines.push(`# ${g.label.toUpperCase()}`);
     for (const item of g.items) {
-      const qty = item.quantity != null && item.unit ? `${item.quantity} ${item.unit} ` : '';
+      const qty =
+        item.parts.length > 0
+          ? item.parts.map((p) => `${p.quantity} ${p.unit}`).join(' + ') + ' '
+          : '';
       lines.push(`- [${item.checked ? 'x' : ' '}] ${qty}${item.name}`);
     }
     lines.push('');

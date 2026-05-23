@@ -5,37 +5,72 @@ import { db } from '@/lib/db';
 import { ShoppingExtraInput, WeekStr } from '@/schemas';
 import { requireHouseholdId } from '@/lib/auth';
 
-export async function toggleCheckAction(week: string, ingredientId: number, checked: boolean) {
+// Shopping rows are aggregated by normalized ingredient name, so a single
+// row can stand in for several catalog ids (legacy dupes). Writing state to
+// only one would let the others resurrect on the next render — so every
+// mutating action below loops over the full id set.
+function assertIngredientIds(ids: unknown): number[] {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new Error('ingredientIds must be a non-empty array');
+  }
+  for (const id of ids) {
+    if (!Number.isInteger(id) || (id as number) <= 0) {
+      throw new Error('ingredientIds must contain positive integers');
+    }
+  }
+  return ids as number[];
+}
+
+export async function toggleCheckAction(
+  week: string,
+  ingredientIds: number[],
+  checked: boolean,
+) {
   const householdId = await requireHouseholdId();
   const w = WeekStr.parse(week);
-  db.prepare(
+  const ids = assertIngredientIds(ingredientIds);
+  const stmt = db.prepare(
     `INSERT INTO shopping_state (household_id, week, ingredient_id, checked, removed, updated_at)
      VALUES (?, ?, ?, ?, 0, datetime('now'))
      ON CONFLICT(household_id, week, ingredient_id) DO UPDATE
        SET checked = excluded.checked, updated_at = excluded.updated_at`,
-  ).run(householdId, w, ingredientId, checked ? 1 : 0);
+  );
+  const tx = db.transaction(() => {
+    for (const id of ids) stmt.run(householdId, w, id, checked ? 1 : 0);
+  });
+  tx();
   revalidatePath('/shopping');
 }
 
-export async function removeIngredientAction(week: string, ingredientId: number) {
+export async function removeIngredientAction(week: string, ingredientIds: number[]) {
   const householdId = await requireHouseholdId();
   const w = WeekStr.parse(week);
-  db.prepare(
+  const ids = assertIngredientIds(ingredientIds);
+  const stmt = db.prepare(
     `INSERT INTO shopping_state (household_id, week, ingredient_id, removed, updated_at)
      VALUES (?, ?, ?, 1, datetime('now'))
      ON CONFLICT(household_id, week, ingredient_id) DO UPDATE
        SET removed = 1, updated_at = excluded.updated_at`,
-  ).run(householdId, w, ingredientId);
+  );
+  const tx = db.transaction(() => {
+    for (const id of ids) stmt.run(householdId, w, id);
+  });
+  tx();
   revalidatePath('/shopping');
 }
 
-export async function restoreIngredientAction(week: string, ingredientId: number) {
+export async function restoreIngredientAction(week: string, ingredientIds: number[]) {
   const householdId = await requireHouseholdId();
   const w = WeekStr.parse(week);
-  db.prepare(
+  const ids = assertIngredientIds(ingredientIds);
+  const stmt = db.prepare(
     `UPDATE shopping_state SET removed = 0, updated_at = datetime('now')
      WHERE household_id = ? AND week = ? AND ingredient_id = ?`,
-  ).run(householdId, w, ingredientId);
+  );
+  const tx = db.transaction(() => {
+    for (const id of ids) stmt.run(householdId, w, id);
+  });
+  tx();
   revalidatePath('/shopping');
 }
 

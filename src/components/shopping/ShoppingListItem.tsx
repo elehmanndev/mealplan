@@ -27,7 +27,7 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
     startTransition(async () => {
       try {
         if (item.kind === 'recipe') {
-          await toggleCheckAction(week, item.ingredientId!, next);
+          await toggleCheckAction(week, item.ingredientIds, next);
         } else {
           await toggleExtraCheckAction(item.id, next);
         }
@@ -43,7 +43,7 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
     startTransition(async () => {
       try {
         if (item.kind === 'recipe') {
-          await removeIngredientAction(week, item.ingredientId!);
+          await removeIngredientAction(week, item.ingredientIds);
         } else {
           await removeExtraAction(item.id);
         }
@@ -83,9 +83,9 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
           ].join(' ')}
         >
           <span className="truncate">{item.name}</span>
-          {item.quantity != null && item.unit && (
+          {item.parts.length > 0 && (
             <span className="text-text-muted tabular-nums text-sm shrink-0">
-              {item.quantity} {item.unit}
+              {item.parts.map((p) => `${p.quantity} ${p.unit}`).join(' + ')}
             </span>
           )}
         </div>
