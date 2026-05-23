@@ -194,6 +194,62 @@ describe('generateShoppingList', () => {
     ]);
   });
 
+  it('collapses two catalog rows whose names normalize to the same food', async () => {
+    // The catalog accumulated legacy duplicates ("Aceitunas test" alongside
+    // "Lata aceitunas test") before the prefix-stripping fix landed. Users
+    // can't all be expected to clean those up by hand — the shopping list
+    // must merge them in display so the same food shows on one line, with
+    // both contributions as separate parts.
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(`
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1600, ${HID}, 'Tapa', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1601, ${HID}, 'Pizza dup', 2);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5600, 'Aceitunas test', 'g', 'despensa', 'lidl');
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5601, 'Lata aceitunas test', 'lata', 'despensa', 'lidl');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1600, 5600, 100, 'g');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1601, 5601, 1, 'lata');
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-06-01', 'comida', 1600, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-06-01', 'cena', 1601, 2);
+    `);
+
+    // Saturday-week opening on 2026-05-30 covers Mon 2026-06-01.
+    const groups = generateShoppingList(HID, '2026-05-30');
+    const allItems = groups.flatMap((g) => g.items);
+    const merged = allItems.filter((i) => i.name === 'Aceitunas test');
+    expect(merged).toHaveLength(1);
+    // Both ingredient ids appear so toggle/remove can write state to each;
+    // otherwise stale state on the second row would resurrect on re-render.
+    expect(merged[0].ingredientIds).toEqual([5600, 5601]);
+    expect(merged[0].parts).toEqual([
+      { quantity: 100, unit: 'g' },
+      { quantity: 1, unit: 'lata' },
+    ]);
+    // The display name comes from the catalog row that's already in canonical
+    // form, not from the prefix-polluted "Lata aceitunas test".
+    expect(merged[0].name).toBe('Aceitunas test');
+    // Polluted row should NOT also appear as a separate item.
+    expect(allItems.some((i) => i.name === 'Lata aceitunas test')).toBe(false);
+  });
+
+  it('marks the merged row checked when state exists on either underlying catalog row', async () => {
+    // State from before the merge could be sitting on either id — we OR
+    // them together so the user's earlier check isn't silently dropped.
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(
+      `INSERT INTO shopping_state (household_id, week, ingredient_id, checked, removed)
+       VALUES (${HID}, '2026-05-30', 5601, 1, 0)`,
+    );
+    const groups = generateShoppingList(HID, '2026-05-30');
+    const merged = groups.flatMap((g) => g.items).find((i) => i.name === 'Aceitunas test');
+    expect(merged?.checked).toBe(true);
+  });
+
   it('toggling shopping_state on a multi-unit ingredient checks the whole row', async () => {
     // Continuation of the multi-unit fixture: shopping_state is keyed by
     // (household, week, ingredient_id) with no unit, so one toggle must mark

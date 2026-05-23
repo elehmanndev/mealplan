@@ -21,7 +21,12 @@ export interface ShoppingItemPart {
 export interface ShoppingItem {
   kind: 'recipe' | 'extra';
   id: number;
-  ingredientId?: number;
+  // Every catalog row that contributed to this row. Different rows can carry
+  // the same food (e.g. "Aceitunas negras" alongside "Lata aceitunas negras")
+  // and the shopping list collapses them by normalized name — toggling /
+  // removing the item must write state for ALL of them, otherwise stale rows
+  // would resurrect on the next render. Empty for extras.
+  ingredientIds: number[];
   name: string;
   // A single ingredient can show multiple (quantity, unit) parts when recipes
   // for the week record it in different units (e.g. 100 g + 1 lata). Extras
