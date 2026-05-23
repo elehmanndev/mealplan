@@ -39,7 +39,7 @@ describe('generateShoppingList', () => {
     const allItems = groups.flatMap((g) => g.items);
     const tomate = allItems.find((i) => i.name === 'TestTomate');
     // pasta (4 servings → ratio 2 → 200g) + salsa (2 servings → ratio 1 → 50g) = 250g
-    expect(tomate?.quantity).toBe(250);
+    expect(tomate?.parts).toEqual([{ quantity: 250, unit: 'g' }]);
   });
 
   it('respects shopping_state for checked/removed', async () => {
@@ -122,11 +122,17 @@ describe('generateShoppingList', () => {
     const groups = generateShoppingList(HID, '2026-02-07');
     const allItems = groups.flatMap((g) => g.items);
     // 0.5 + 0.5 = 1.0, packaged → 1
-    expect(allItems.find((i) => i.name === 'TestAceitunas')?.quantity).toBe(1);
+    expect(allItems.find((i) => i.name === 'TestAceitunas')?.parts).toEqual([
+      { quantity: 1, unit: 'lata' },
+    ]);
     // 0.5, packaged → ceil(0.5) = 1
-    expect(allItems.find((i) => i.name === 'TestCherry')?.quantity).toBe(1);
+    expect(allItems.find((i) => i.name === 'TestCherry')?.parts).toEqual([
+      { quantity: 1, unit: 'bandeja' },
+    ]);
     // 100g, NOT packaged → 100
-    expect(allItems.find((i) => i.name === 'TestHarina')?.quantity).toBe(100);
+    expect(allItems.find((i) => i.name === 'TestHarina')?.parts).toEqual([
+      { quantity: 100, unit: 'g' },
+    ]);
   });
 
   it('merges equivalent discrete-unit aliases (ud / pieza / unidad)', async () => {
@@ -155,8 +161,54 @@ describe('generateShoppingList', () => {
     const allItems = groups.flatMap((g) => g.items);
     const zanahorias = allItems.filter((i) => i.name === 'TestZanahoria');
     expect(zanahorias).toHaveLength(1);
-    expect(zanahorias[0].quantity).toBe(9);
-    expect(zanahorias[0].unit).toBe('ud');
+    expect(zanahorias[0].parts).toEqual([{ quantity: 9, unit: 'ud' }]);
+  });
+
+  it('shows one row with multiple parts when the same ingredient appears in different units', async () => {
+    // Same ingredient ("Aceitunas negras") used as a `lata` in one recipe and
+    // as `g` in another must collapse into ONE shopping line carrying both
+    // parts — "100 g + 1 lata" — not two separate rows.
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(`
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1500, ${HID}, 'Ensalada', 2);
+      INSERT INTO recipes (id, household_id, name, base_servings) VALUES (1501, ${HID}, 'Pizza', 2);
+      INSERT INTO ingredients (id, name, default_unit, shopping_category, supermarket)
+        VALUES (5500, 'TestAceitunasNegras', 'lata', 'despensa', 'lidl');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1500, 5500, 100, 'g');
+      INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (1501, 5500, 1, 'lata');
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-05-04', 'comida', 1500, 2);
+      INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (${HID}, '2026-05-04', 'cena', 1501, 2);
+    `);
+
+    // Saturday-week opening on 2026-05-02 covers Mon 2026-05-04.
+    const groups = generateShoppingList(HID, '2026-05-02');
+    const allItems = groups.flatMap((g) => g.items);
+    const item = allItems.filter((i) => i.name === 'TestAceitunasNegras');
+    expect(item).toHaveLength(1);
+    // Parts sorted by UNITS tuple order — g (mass) before lata (packaged).
+    expect(item[0].parts).toEqual([
+      { quantity: 100, unit: 'g' },
+      { quantity: 1, unit: 'lata' },
+    ]);
+  });
+
+  it('toggling shopping_state on a multi-unit ingredient checks the whole row', async () => {
+    // Continuation of the multi-unit fixture: shopping_state is keyed by
+    // (household, week, ingredient_id) with no unit, so one toggle must mark
+    // the consolidated row checked regardless of how many parts it has.
+    const { db } = await import('../db');
+    const { generateShoppingList } = await import('../shopping');
+
+    db.exec(
+      `INSERT INTO shopping_state (household_id, week, ingredient_id, checked, removed)
+       VALUES (${HID}, '2026-05-02', 5500, 1, 0)`,
+    );
+    const groups = generateShoppingList(HID, '2026-05-02');
+    const item = groups.flatMap((g) => g.items).find((i) => i.name === 'TestAceitunasNegras');
+    expect(item?.checked).toBe(true);
+    expect(item?.parts).toHaveLength(2);
   });
 
   it('aggregates same ingredient across multiple plan entries in the same slot', async () => {
@@ -179,7 +231,9 @@ describe('generateShoppingList', () => {
     // Saturday-week opening on 2026-03-07 covers Mon 2026-03-09.
     const groups = generateShoppingList(HID, '2026-03-07');
     const allItems = groups.flatMap((g) => g.items);
-    expect(allItems.find((i) => i.name === 'TestShared')?.quantity).toBe(250);
+    expect(allItems.find((i) => i.name === 'TestShared')?.parts).toEqual([
+      { quantity: 250, unit: 'g' },
+    ]);
   });
 });
 

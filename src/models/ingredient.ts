@@ -1,6 +1,22 @@
 import { db } from '@/lib/db';
 import type { Ingredient } from '@/types';
 
+// Chat-imported / scraped recipes often prepend the packaging word to the
+// ingredient name ("Lata aceitunas negras", "Bandeja tomate cherry"). Left
+// alone, that creates a parallel catalog row alongside the canonical
+// "Aceitunas negras" / "Tomate cherry" and the shopping list shows both
+// lines. Strip the leading packaging word so the unit field carries the
+// packaging info and the name is just the food.
+const PACKAGING_PREFIX_RE =
+  /^(lata|bandeja|bolsa|paquete|brick|bote|pack|tarrina|frasco|tarro|caja)( de| con)?\s+/i;
+
+export function normalizeIngredientName(name: string): string {
+  const trimmed = name.trim();
+  const stripped = trimmed.replace(PACKAGING_PREFIX_RE, '');
+  if (!stripped) return trimmed;
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
 export function searchIngredients(query: string, limit = 10): Ingredient[] {
   if (!query.trim()) {
     return db
@@ -26,10 +42,10 @@ export function findOrCreateIngredient(
   supermarket?: string | null,
   isPantry?: boolean,
 ): number {
-  const trimmed = name.trim();
+  const normalized = normalizeIngredientName(name);
   const existing = db
     .prepare('SELECT id FROM ingredients WHERE LOWER(name) = LOWER(?)')
-    .get(trimmed) as { id: number } | undefined;
+    .get(normalized) as { id: number } | undefined;
   if (existing) {
     if (supermarket !== undefined) {
       db.prepare('UPDATE ingredients SET supermarket = ? WHERE id = ?').run(supermarket, existing.id);
@@ -43,6 +59,6 @@ export function findOrCreateIngredient(
     .prepare(
       'INSERT INTO ingredients (name, default_unit, shopping_category, supermarket, is_pantry) VALUES (?, ?, ?, ?, ?)',
     )
-    .run(trimmed, defaultUnit, shoppingCategory, supermarket ?? null, isPantry ? 1 : 0);
+    .run(normalized, defaultUnit, shoppingCategory, supermarket ?? null, isPantry ? 1 : 0);
   return Number(result.lastInsertRowid);
 }
