@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home as HomeIcon, ChevronRight, LogOut, Merge } from 'lucide-react';
+import { Home as HomeIcon, ChevronRight, LogOut } from 'lucide-react';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { DataActions } from '@/components/settings/DataActions';
@@ -83,19 +83,6 @@ export default async function SettingsPage() {
             Datos
           </h2>
           <DataActions />
-          {user?.role === 'owner' && (
-            <Link
-              href="/settings/ingredients"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-            >
-              <Merge size={20} className="text-text-muted shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-text">Catálogo de ingredientes</div>
-                <div className="text-xs text-text-muted truncate">Fusiona filas duplicadas</div>
-              </div>
-              <ChevronRight size={18} className="text-text-muted shrink-0" />
-            </Link>
-          )}
         </section>
 
         <section className="flex flex-col gap-3">
