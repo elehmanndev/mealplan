@@ -2,8 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Mic, RotateCcw, Send, Sparkles } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Streamdown } from 'streamdown';
 import { useToast } from '@/components/ui/Toast';
 import { RecipeDraftCard, type RecipeDraft } from '@/components/chat/RecipeDraftCard';
 import { ChatUsageBar } from '@/components/chat/ChatUsageBar';
@@ -444,38 +443,42 @@ function Message({
       ) : (
         <>
           {message.content && (
-            <div>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: (props) => (
-                    <a
-                      {...props}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent underline"
-                    />
-                  ),
-                  code: ({ children, ...props }) => (
-                    <code
-                      {...props}
-                      className="px-1 py-0.5 rounded bg-surface text-[0.9em] font-mono"
-                    >
-                      {children}
-                    </code>
-                  ),
-                  ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
-                  p: ({ children }) => (
-                    <p className="my-2 first:mt-0 last:mb-0">{children}</p>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="font-semibold text-text">{children}</strong>
-                  ),
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
+            <div className="flex justify-start">
+              <div className="max-w-[85%] bg-surface rounded-2xl rounded-bl-md px-4 py-3">
+                <Streamdown
+                  controls={false}
+                  isAnimating={streaming}
+                  animated={{ animation: 'fadeIn', duration: 350, sep: 'word' }}
+                  components={{
+                    a: (props) => (
+                      <a
+                        {...props}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent underline"
+                      />
+                    ),
+                    code: ({ children, ...props }) => (
+                      <code
+                        {...props}
+                        className="px-1 py-0.5 rounded bg-surface-2 text-[0.9em] font-mono"
+                      >
+                        {children}
+                      </code>
+                    ),
+                    ul: ({ children }) => <ul className="list-disc pl-5 space-y-1">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1">{children}</ol>,
+                    p: ({ children }) => (
+                      <p className="my-2 first:mt-0 last:mb-0">{children}</p>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-semibold text-text">{children}</strong>
+                    ),
+                  }}
+                >
+                  {message.content}
+                </Streamdown>
+              </div>
             </div>
           )}
 

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Streamdown ships keyframes (sd-fadeIn / sd-blurIn / sd-slideUp) and the
+   [data-sd-animate] rule that drives the per-token streaming animation in
+   /chat. No utilities — safe to load globally. */
+@import 'streamdown/styles.css';
+
 :root {
   color-scheme: dark;
   --bg: 11 13 17;
