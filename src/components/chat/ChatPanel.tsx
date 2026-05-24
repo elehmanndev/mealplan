@@ -448,11 +448,11 @@ function Message({
                 <Streamdown
                   controls={false}
                   isAnimating={streaming}
-                  // Stagger widens the gap between word starts so the leading
-                  // edge of the reveal moves at ~10 words/sec — typewriter-ish,
-                  // visible. Default 40ms stagger made Gemini's 50-word chunks
-                  // look like a block fade.
-                  animated={{ animation: 'fadeIn', duration: 250, sep: 'word', stagger: 100 }}
+                  // Gemini emits ~50-word chunks every ~270ms, so stagger only
+                  // paces within a chunk. We lean on both wider stagger (per
+                  // word gap) AND longer fade duration so each word's reveal
+                  // is visibly slow even when chunks arrive fast.
+                  animated={{ animation: 'fadeIn', duration: 500, sep: 'word', stagger: 180 }}
                   components={{
                     a: (props) => (
                       <a
