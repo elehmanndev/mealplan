@@ -14,6 +14,10 @@ interface ChatMessage {
   draftStatus?: 'pending' | 'saving' | 'saved' | 'discarded';
   draftSaved?: { id: number; name: string };
   skippedRecipes?: string[];
+  // True for follow-up bubbles created when the typewriter splits a long
+  // response into shorter sintagmas. Suppresses the "Pensando…" placeholder
+  // that would otherwise flash between bubbles.
+  isContinuation?: boolean;
 }
 
 const WELCOME: ChatMessage = {
@@ -50,15 +54,23 @@ export function ChatPanel() {
 
   // Typewriter throttle. Gemini hands us ~50-word chunks every ~270ms, which
   // makes the visible reveal jump forward in big steps even with Streamdown's
-  // per-word stagger. We buffer incoming text and drain it at a fixed rate so
-  // the user sees a steady ChatGPT-style typewriter regardless of how the
-  // server chunks the stream.
+  // per-word stagger. We buffer incoming text and drain it at a fixed rate,
+  // then split it into shorter "sintagma" bubbles at sentence boundaries with
+  // a short conversational pause between bubbles — feels like a chat partner
+  // sending you a few quick messages in a row.
   const textBufferRef = useRef('');
   const drainTimerRef = useRef<number | null>(null);
   const streamDoneRef = useRef(false);
   const drainResolverRef = useRef<(() => void) | null>(null);
+  const pauseTicksRef = useRef(0);
+  const needNewBubbleRef = useRef(false);
+  const pendingDraftRef = useRef<RecipeDraft | null>(null);
+  const pendingSkippedRef = useRef<string[]>([]);
   const TYPEWRITER_CHARS_PER_TICK = 2;
-  const TYPEWRITER_TICK_MS = 40; // → ~50 chars/sec, ~8.5 words/sec
+  const TYPEWRITER_TICK_MS = 25; // → ~80 chars/sec within a single bubble
+  const PAUSE_BETWEEN_BUBBLES_MS = 600;
+  const PAUSE_BETWEEN_BUBBLES_TICKS = Math.round(PAUSE_BETWEEN_BUBBLES_MS / TYPEWRITER_TICK_MS);
+  const SENTENCE_END = /[.!?…]/;
 
   // Hydrate from sessionStorage on first mount.
   useEffect(() => {
@@ -134,9 +146,41 @@ export function ChatPanel() {
   function ensureDrainRunning() {
     if (drainTimerRef.current != null) return;
     drainTimerRef.current = window.setInterval(() => {
+      // Hold off while pausing between bubbles.
+      if (pauseTicksRef.current > 0) {
+        pauseTicksRef.current--;
+        return;
+      }
+      // After a pause, the next tick spawns a fresh continuation bubble; the
+      // tick after starts filling it.
+      if (needNewBubbleRef.current) {
+        setMessages((prev) => [...prev, { role: 'model', content: '', isContinuation: true }]);
+        needNewBubbleRef.current = false;
+        return;
+      }
       if (textBufferRef.current.length === 0) {
         if (streamDoneRef.current) {
-          // Buffer empty and stream closed — stop the timer and unblock send().
+          // Flush any queued draft / skipped events that arrived mid-stream.
+          if (pendingDraftRef.current || pendingSkippedRef.current.length > 0) {
+            const draft = pendingDraftRef.current;
+            const skipped = pendingSkippedRef.current;
+            pendingDraftRef.current = null;
+            pendingSkippedRef.current = [];
+            setMessages((prev) => {
+              const copy = [...prev];
+              const last = copy[copy.length - 1];
+              if (last?.role === 'model') {
+                copy[copy.length - 1] = {
+                  ...last,
+                  ...(draft ? { draft, draftStatus: 'pending' as const } : {}),
+                  ...(skipped.length > 0
+                    ? { skippedRecipes: [...(last.skippedRecipes ?? []), ...skipped] }
+                    : {}),
+                };
+              }
+              return copy;
+            });
+          }
           window.clearInterval(drainTimerRef.current!);
           drainTimerRef.current = null;
           drainResolverRef.current?.();
@@ -144,8 +188,31 @@ export function ChatPanel() {
         }
         return;
       }
-      const out = textBufferRef.current.slice(0, TYPEWRITER_CHARS_PER_TICK);
-      textBufferRef.current = textBufferRef.current.slice(TYPEWRITER_CHARS_PER_TICK);
+
+      // Scan the next chunk window for a sentence boundary so we can seal the
+      // current bubble at a natural break instead of mid-clause.
+      const buf = textBufferRef.current;
+      const windowSize = Math.min(TYPEWRITER_CHARS_PER_TICK, buf.length);
+      let stopAt = windowSize;
+      let sealed = false;
+      for (let i = 0; i < windowSize; i++) {
+        const c = buf[i];
+        const next = buf[i + 1];
+        if (SENTENCE_END.test(c) && next && /\s/.test(next)) {
+          stopAt = i + 1;
+          sealed = true;
+          break;
+        }
+      }
+      const out = buf.slice(0, stopAt);
+      let remainder = buf.slice(stopAt);
+      if (sealed) {
+        // Eat the whitespace that would otherwise lead the next bubble.
+        remainder = remainder.replace(/^\s+/, '');
+        pauseTicksRef.current = PAUSE_BETWEEN_BUBBLES_TICKS;
+        needNewBubbleRef.current = true;
+      }
+      textBufferRef.current = remainder;
       setMessages((prev) => {
         const copy = [...prev];
         const last = copy[copy.length - 1];
@@ -169,6 +236,10 @@ export function ChatPanel() {
     // Reset typewriter state for this turn.
     textBufferRef.current = '';
     streamDoneRef.current = false;
+    pauseTicksRef.current = 0;
+    needNewBubbleRef.current = false;
+    pendingDraftRef.current = null;
+    pendingSkippedRef.current = [];
 
     try {
       const baseMessages = next
@@ -261,28 +332,14 @@ export function ChatPanel() {
         textBufferRef.current += delta;
         ensureDrainRunning();
       } else if (ev.event === 'recipe_draft') {
-        const draft = data as unknown as RecipeDraft;
-        setMessages((prev) => {
-          const copy = [...prev];
-          const last = copy[copy.length - 1];
-          if (last?.role === 'model') {
-            copy[copy.length - 1] = { ...last, draft, draftStatus: 'pending' };
-          }
-          return copy;
-        });
+        // Defer: the draft must attach to the FINAL bubble of the turn, but
+        // continuation bubbles may still be created by the typewriter after
+        // this event fires. We apply it once the drain finishes.
+        pendingDraftRef.current = data as unknown as RecipeDraft;
+        ensureDrainRunning();
       } else if (ev.event === 'recipe_skipped') {
-        const name = String(data.name ?? '');
-        setMessages((prev) => {
-          const copy = [...prev];
-          const last = copy[copy.length - 1];
-          if (last?.role === 'model') {
-            copy[copy.length - 1] = {
-              ...last,
-              skippedRecipes: [...(last.skippedRecipes ?? []), name],
-            };
-          }
-          return copy;
-        });
+        pendingSkippedRef.current.push(String(data.name ?? ''));
+        ensureDrainRunning();
       } else if (ev.event === 'tool_error') {
         toast.show(String(data.error ?? 'Error con la herramienta'), 'error');
       } else if (ev.event === 'done') {
@@ -491,7 +548,7 @@ function Message({
 
   return (
     <div className="text-text text-[15px] leading-relaxed">
-      {empty && streaming ? (
+      {empty && streaming && !message.isContinuation ? (
         <ThinkingDots />
       ) : (
         <>
