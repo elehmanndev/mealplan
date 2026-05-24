@@ -48,6 +48,18 @@ export function ChatPanel() {
   const stickToBottomRef = useRef(true);
   const hydratedRef = useRef(false);
 
+  // Typewriter throttle. Gemini hands us ~50-word chunks every ~270ms, which
+  // makes the visible reveal jump forward in big steps even with Streamdown's
+  // per-word stagger. We buffer incoming text and drain it at a fixed rate so
+  // the user sees a steady ChatGPT-style typewriter regardless of how the
+  // server chunks the stream.
+  const textBufferRef = useRef('');
+  const drainTimerRef = useRef<number | null>(null);
+  const streamDoneRef = useRef(false);
+  const drainResolverRef = useRef<(() => void) | null>(null);
+  const TYPEWRITER_CHARS_PER_TICK = 2;
+  const TYPEWRITER_TICK_MS = 50; // → ~40 chars/sec, ~7 words/sec
+
   // Hydrate from sessionStorage on first mount.
   useEffect(() => {
     const stored = loadStoredMessages();
@@ -119,6 +131,32 @@ export function ChatPanel() {
     };
   }, []);
 
+  function ensureDrainRunning() {
+    if (drainTimerRef.current != null) return;
+    drainTimerRef.current = window.setInterval(() => {
+      if (textBufferRef.current.length === 0) {
+        if (streamDoneRef.current) {
+          // Buffer empty and stream closed — stop the timer and unblock send().
+          window.clearInterval(drainTimerRef.current!);
+          drainTimerRef.current = null;
+          drainResolverRef.current?.();
+          drainResolverRef.current = null;
+        }
+        return;
+      }
+      const out = textBufferRef.current.slice(0, TYPEWRITER_CHARS_PER_TICK);
+      textBufferRef.current = textBufferRef.current.slice(TYPEWRITER_CHARS_PER_TICK);
+      setMessages((prev) => {
+        const copy = [...prev];
+        const last = copy[copy.length - 1];
+        if (last?.role === 'model') {
+          copy[copy.length - 1] = { ...last, content: last.content + out };
+        }
+        return copy;
+      });
+    }, TYPEWRITER_TICK_MS);
+  }
+
   async function send() {
     const content = text.trim();
     if (!content || busy) return;
@@ -128,6 +166,9 @@ export function ChatPanel() {
     setMessages([...next, { role: 'model', content: '' }]);
     setText('');
     setBusy(true);
+    // Reset typewriter state for this turn.
+    textBufferRef.current = '';
+    streamDoneRef.current = false;
 
     try {
       const baseMessages = next
@@ -189,9 +230,25 @@ export function ChatPanel() {
         }
       }
     } catch {
+      // Abort the typewriter on error — drop any buffered text so the
+      // drain-wait in `finally` resolves immediately.
+      textBufferRef.current = '';
+      if (drainTimerRef.current != null) {
+        window.clearInterval(drainTimerRef.current);
+        drainTimerRef.current = null;
+      }
       toast.show('No se pudo enviar el mensaje', 'error');
       setMessages((prev) => prev.slice(0, -1));
     } finally {
+      // Mark stream complete and wait for the typewriter to flush the buffer
+      // before flipping busy=false. Otherwise `streaming` would go false while
+      // text is still being typed out, killing Streamdown's per-word fade.
+      streamDoneRef.current = true;
+      if (textBufferRef.current.length > 0 || drainTimerRef.current != null) {
+        await new Promise<void>((resolve) => {
+          drainResolverRef.current = resolve;
+        });
+      }
       setBusy(false);
     }
 
@@ -199,14 +256,10 @@ export function ChatPanel() {
       const data = ev.data as Record<string, unknown>;
       if (ev.event === 'text') {
         const delta = String(data.delta ?? '');
-        setMessages((prev) => {
-          const copy = [...prev];
-          const last = copy[copy.length - 1];
-          if (last?.role === 'model') {
-            copy[copy.length - 1] = { ...last, content: last.content + delta };
-          }
-          return copy;
-        });
+        // Push into the typewriter buffer; the drain timer applies it to
+        // state at TYPEWRITER_CHARS_PER_TICK chars per TYPEWRITER_TICK_MS.
+        textBufferRef.current += delta;
+        ensureDrainRunning();
       } else if (ev.event === 'recipe_draft') {
         const draft = data as unknown as RecipeDraft;
         setMessages((prev) => {
@@ -448,11 +501,10 @@ function Message({
                 <Streamdown
                   controls={false}
                   isAnimating={streaming}
-                  // Gemini emits ~50-word chunks every ~270ms, so stagger only
-                  // paces within a chunk. We lean on both wider stagger (per
-                  // word gap) AND longer fade duration so each word's reveal
-                  // is visibly slow even when chunks arrive fast.
-                  animated={{ animation: 'fadeIn', duration: 500, sep: 'word', stagger: 180 }}
+                  // Pacing is owned by the typewriter throttle in send()
+                  // (see TYPEWRITER_* constants). Streamdown just softens the
+                  // appearance of each new character with a short fade.
+                  animated={{ animation: 'fadeIn', duration: 180, sep: 'char', stagger: 0 }}
                   components={{
                     a: (props) => (
                       <a
