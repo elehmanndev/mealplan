@@ -58,7 +58,7 @@ export function ChatPanel() {
   const streamDoneRef = useRef(false);
   const drainResolverRef = useRef<(() => void) | null>(null);
   const TYPEWRITER_CHARS_PER_TICK = 2;
-  const TYPEWRITER_TICK_MS = 50; // → ~40 chars/sec, ~7 words/sec
+  const TYPEWRITER_TICK_MS = 40; // → ~50 chars/sec, ~8.5 words/sec
 
   // Hydrate from sessionStorage on first mount.
   useEffect(() => {
