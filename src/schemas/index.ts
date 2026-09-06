@@ -66,5 +66,6 @@ export const ShoppingExtraInput = z.object({
   quantity: z.number().positive().optional().nullable(),
   unit: UnitEnum.optional().nullable(),
   shopping_category: ShoppingCategoryEnum.default('otros'),
+  supermarket: z.string().nullable().optional(),
 });
 export type ShoppingExtraInput = z.infer<typeof ShoppingExtraInput>;

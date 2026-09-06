@@ -91,8 +91,8 @@ export async function addExtraAction(input: unknown) {
   const data = ShoppingExtraInput.parse(input);
   const result = db
     .prepare(
-      `INSERT INTO shopping_extras (household_id, week, name, quantity, unit, shopping_category)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO shopping_extras (household_id, week, name, quantity, unit, shopping_category, supermarket)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       householdId,
@@ -101,6 +101,7 @@ export async function addExtraAction(input: unknown) {
       data.quantity ?? null,
       data.unit ?? null,
       data.shopping_category,
+      data.supermarket ?? null,
     );
   revalidatePath('/shopping');
   return Number(result.lastInsertRowid);

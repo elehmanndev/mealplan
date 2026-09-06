@@ -47,6 +47,7 @@ interface ExtraRow {
   quantity: number | null;
   unit: string | null;
   shopping_category: ShoppingCategory;
+  supermarket: string | null;
   checked: number;
   removed: number;
 }
@@ -186,7 +187,7 @@ export function generateShoppingList(
 
   const extras = db
     .prepare(
-      `SELECT id, name, quantity, unit, shopping_category, checked, removed
+      `SELECT id, name, quantity, unit, shopping_category, supermarket, checked, removed
        FROM shopping_extras WHERE household_id = ? AND week = ?`,
     )
     .all(householdId, weekStr) as ExtraRow[];
@@ -198,6 +199,7 @@ export function generateShoppingList(
     name: e.name,
     parts: e.quantity != null && e.unit ? [{ quantity: e.quantity, unit: e.unit }] : [],
     category: e.shopping_category,
+    supermarket: e.supermarket ?? null,
     checked: !!e.checked,
     removed: !!e.removed,
   }));

@@ -1,33 +1,45 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
+import { SUPERMARKETS } from '@/lib/supermarkets';
 import { addExtraAction } from '@/actions/shopping';
 
 interface AddExtraSheetProps {
   open: boolean;
   onClose: () => void;
   week: string;
+  // Supermarket to preselect when the sheet opens (e.g. opened from a
+  // specific group's add line). `null`/undefined → "Sin asignar".
+  defaultSupermarket?: string | null;
 }
 
-export function AddExtraSheet({ open, onClose, week }: AddExtraSheetProps) {
+export function AddExtraSheet({ open, onClose, week, defaultSupermarket }: AddExtraSheetProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState<string>('');
   const [category, setCategory] = useState<string>('otros');
+  const [supermarket, setSupermarket] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+
+  // Each time the sheet opens, seed the supermarket picker with whichever
+  // group launched it (blank = "Sin asignar").
+  useEffect(() => {
+    if (open) setSupermarket(defaultSupermarket ?? '');
+  }, [open, defaultSupermarket]);
 
   function reset() {
     setName('');
     setQuantity('');
     setUnit('');
     setCategory('otros');
+    setSupermarket('');
     setError(null);
   }
 
@@ -50,6 +62,7 @@ export function AddExtraSheet({ open, onClose, week }: AddExtraSheetProps) {
         quantity: qty,
         unit: unit || null,
         shopping_category: category,
+        supermarket: supermarket || null,
       });
       reset();
       onClose();
@@ -118,6 +131,22 @@ export function AddExtraSheet({ open, onClose, week }: AddExtraSheetProps) {
             {SHOPPING_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-sm text-text-muted">Supermercado</span>
+          <select
+            value={supermarket}
+            onChange={(e) => setSupermarket(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Sin asignar</option>
+            {SUPERMARKETS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
               </option>
             ))}
           </select>
