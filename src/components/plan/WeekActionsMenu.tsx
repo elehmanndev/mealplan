@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Copy, Trash2 } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { Button } from '@/components/ui/Button';
+import { ListRow, ListSection } from '@/components/ui/List';
+import { ConfirmActions } from '@/components/ui/ConfirmActions';
 import { useToast } from '@/components/ui/Toast';
 import { clearWeekAction, duplicateWeekAction } from '@/actions/plan';
 import { getPrevWeek } from '@/lib/week';
@@ -63,80 +64,43 @@ export function WeekActionsMenu({ week, open, onClose, hasEntries }: WeekActions
   return (
     <BottomSheet open={open} onClose={onClose} title="Acciones de semana">
       {mode === 'confirm-duplicate' ? (
-        <div className="space-y-4">
-          <p className="text-text-muted">
-            La semana actual tiene comidas. ¿Reemplazarlas con las de la semana anterior?
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              fullWidth
-              onClick={() => setMode('menu')}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              fullWidth
-              onClick={() => runDuplicate(true)}
-              disabled={isPending}
-            >
-              Reemplazar
-            </Button>
-          </div>
-        </div>
+        <ConfirmActions
+          message="La semana actual tiene comidas. ¿Reemplazarlas con las de la semana anterior?"
+          confirmLabel="Reemplazar"
+          onConfirm={() => runDuplicate(true)}
+          onCancel={() => setMode('menu')}
+          disabled={isPending}
+        />
       ) : mode === 'confirm-clear' ? (
-        <div className="space-y-4">
-          <p className="text-text-muted">¿Borrar todas las comidas de la semana?</p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              fullWidth
-              onClick={() => setMode('menu')}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              fullWidth
-              onClick={runClear}
-              disabled={isPending}
-            >
-              Limpiar
-            </Button>
-          </div>
-        </div>
+        <ConfirmActions
+          message="¿Borrar todas las comidas de la semana?"
+          confirmLabel="Limpiar semana"
+          destructive
+          onConfirm={runClear}
+          onCancel={() => setMode('menu')}
+          disabled={isPending}
+        />
       ) : (
-        <ul className="space-y-1">
-          <li>
-            <button
-              type="button"
+        <div className="space-y-5">
+          <ListSection>
+            <ListRow
+              icon={Copy}
+              iconBg="#5856D6"
+              title="Duplicar semana anterior aquí"
               onClick={handleDuplicateClicked}
               disabled={isPending}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
-            >
-              <Copy size={20} className="text-text-muted shrink-0" />
-              <span className="font-medium">Duplicar semana anterior aquí</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
+            />
+          </ListSection>
+          <ListSection>
+            <ListRow
+              icon={Trash2}
+              destructive
+              title="Limpiar semana"
               onClick={() => setMode('confirm-clear')}
               disabled={isPending || !hasEntries}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
-            >
-              <Trash2 size={20} className="text-danger shrink-0" />
-              <span className="font-medium text-danger">Limpiar semana</span>
-            </button>
-          </li>
-        </ul>
+            />
+          </ListSection>
+        </div>
       )}
     </BottomSheet>
   );

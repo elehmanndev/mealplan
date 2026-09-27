@@ -7,9 +7,11 @@ import { toggleFavoriteAction } from '@/actions/recipes';
 interface FavoriteToggleProps {
   recipeId: number;
   initial: boolean;
+  /** Small glass disc for overlaying on cards. */
+  compact?: boolean;
 }
 
-export function FavoriteToggle({ recipeId, initial }: FavoriteToggleProps) {
+export function FavoriteToggle({ recipeId, initial, compact = false }: FavoriteToggleProps) {
   const [favorite, setFavorite] = useState(initial);
   const [isPending, startTransition] = useTransition();
 
@@ -34,16 +36,15 @@ export function FavoriteToggle({ recipeId, initial }: FavoriteToggleProps) {
       disabled={isPending}
       aria-label={favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
       aria-pressed={favorite}
-      className="min-w-touch min-h-touch flex items-center justify-center rounded-full active:scale-95 transition-transform"
+      className={[
+        'flex items-center justify-center rounded-full active:scale-90 transition-transform',
+        compact ? 'w-8 h-8 glass' : 'w-11 h-11',
+      ].join(' ')}
     >
       <Star
-        size={22}
-        strokeWidth={favorite ? 1.75 : 2.25}
-        className={
-          favorite
-            ? 'fill-favorite text-favorite drop-shadow-[0_1px_2px_rgba(250,204,21,0.35)]'
-            : 'text-text-muted/70'
-        }
+        size={compact ? 16 : 22}
+        strokeWidth={2.25}
+        className={favorite ? 'fill-favorite text-favorite' : compact ? 'text-text-muted' : 'text-accent'}
       />
     </button>
   );

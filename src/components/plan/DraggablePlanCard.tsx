@@ -29,7 +29,7 @@ export function DraggablePlanCard({ entry, onTap }: DraggablePlanCardProps) {
       onClick={onTap}
       type="button"
       aria-label={entry.recipe?.name ?? 'Receta'}
-      className="w-full h-full rounded-xl bg-surface px-2 py-1.5 flex items-center gap-2 active:scale-[0.98] transition-transform text-left"
+      className="w-full h-full rounded-[14px] bg-surface px-2 py-1.5 flex items-center gap-2 active:scale-[0.97] transition-transform text-left"
       {...attributes}
       {...listeners}
     >
@@ -37,7 +37,7 @@ export function DraggablePlanCard({ entry, onTap }: DraggablePlanCardProps) {
         {entry.recipe?.emoji ?? '🍽️'}
       </span>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium leading-tight line-clamp-2">
+        <div className="text-footnote font-medium line-clamp-2">
           {entry.recipe?.name ?? 'Receta'}
         </div>
       </div>

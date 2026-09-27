@@ -2,6 +2,7 @@
 
 import type { RecipeWithIngredients } from '@/types';
 import { Stepper } from '@/components/ui/Stepper';
+import { ListRow, ListSection } from '@/components/ui/List';
 import { formatAmount, scaleQuantity } from '@/lib/scale';
 
 interface ServingsViewProps {
@@ -12,40 +13,24 @@ interface ServingsViewProps {
 
 export function ServingsView({ recipe, servings, setServings }: ServingsViewProps) {
   return (
-    <div>
-      <div className="flex justify-center">
-        <Stepper
-          size="lg"
-          value={servings}
-          onChange={setServings}
-          min={1}
-          max={20}
-          label="Comensales"
-        />
+    <ListSection header="Ingredientes">
+      <div className="list-row flex items-center pl-4">
+        <div className="list-row-content flex-1 flex items-center justify-between py-2 pr-3">
+          <span className="text-body">Comensales</span>
+          <Stepper value={servings} onChange={setServings} min={1} max={20} />
+        </div>
       </div>
       {recipe.ingredients.length > 0 ? (
-        <ul className="space-y-2 mt-4">
-          {recipe.ingredients.map((ing) => {
-            const q =
-              ing.unit === 'al_gusto'
-                ? ing.quantity
-                : scaleQuantity(ing.quantity, recipe.base_servings, servings);
-            return (
-              <li
-                key={ing.ingredient_id}
-                className="flex justify-between items-baseline gap-3 px-4 py-3 bg-surface rounded-xl"
-              >
-                <span className="font-medium text-text">{ing.name}</span>
-                <span className="text-text-muted tabular-nums text-right">
-                  {formatAmount(q, ing.unit)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+        recipe.ingredients.map((ing) => {
+          const q =
+            ing.unit === 'al_gusto'
+              ? ing.quantity
+              : scaleQuantity(ing.quantity, recipe.base_servings, servings);
+          return <ListRow key={ing.ingredient_id} title={ing.name} value={formatAmount(q, ing.unit)} />;
+        })
       ) : (
-        <p className="text-center text-text-muted mt-6">Sin ingredientes</p>
+        <p className="list-row px-4 py-3 text-body text-text-muted">Sin ingredientes</p>
       )}
-    </div>
+    </ListSection>
   );
 }

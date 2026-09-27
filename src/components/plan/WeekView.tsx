@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DndContext,
@@ -17,7 +17,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { movePlanEntryAction } from '@/actions/plan';
 import {
   formatDate,
-  formatDayName,
+  formatDayShort,
   formatDayNumber,
   getWeekDates,
   isSameDay,
@@ -33,14 +33,16 @@ import { WeekNav } from './WeekNav';
 interface WeekViewProps {
   week: string;
   entries: PlanEntry[];
+  /** Rendered between the nav bar and the grid (e.g. empty-household CTA). */
+  banner?: ReactNode;
 }
 
-const SLOTS: { slot: Slot; icon: string; label: string }[] = [
-  { slot: 'comida', icon: '🥘', label: 'Comida' },
-  { slot: 'cena', icon: '🌙', label: 'Cena' },
+const SLOTS: { slot: Slot; label: string }[] = [
+  { slot: 'comida', label: 'Comida' },
+  { slot: 'cena', label: 'Cena' },
 ];
 
-export function WeekView({ week, entries }: WeekViewProps) {
+export function WeekView({ week, entries, banner }: WeekViewProps) {
   const router = useRouter();
   const toast = useToast();
   const [, startTransition] = useTransition();
@@ -118,6 +120,7 @@ export function WeekView({ week, entries }: WeekViewProps) {
   return (
     <>
       <WeekNav week={week} onOpenActions={() => setActionsOpen(true)} />
+      {banner}
 
       <DndContext
         sensors={sensors}
@@ -125,22 +128,18 @@ export function WeekView({ week, entries }: WeekViewProps) {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveId(null)}
       >
-        <div className="px-3 pt-5 pb-5">
+        <div className="px-3 pt-2 pb-5">
           <div
-            className="grid gap-2"
+            className="grid gap-1.5"
             style={{
-              gridTemplateColumns: '44px repeat(2, minmax(0, 1fr))',
-              gridTemplateRows: 'auto repeat(7, minmax(76px, auto))',
+              gridTemplateColumns: '40px repeat(2, minmax(0, 1fr))',
+              gridTemplateRows: 'auto repeat(7, minmax(72px, auto))',
             }}
           >
             <div aria-hidden />
-            {SLOTS.map(({ slot, icon, label }) => (
-              <div
-                key={`h-${slot}`}
-                className="flex items-center justify-center gap-1 text-text-muted text-xs uppercase tracking-wide"
-              >
-                <span aria-hidden>{icon}</span>
-                <span>{label}</span>
+            {SLOTS.map(({ slot, label }) => (
+              <div key={`h-${slot}`} className="pb-0.5 text-center text-footnote font-semibold text-text-muted">
+                {label}
               </div>
             ))}
 
@@ -149,24 +148,19 @@ export function WeekView({ week, entries }: WeekViewProps) {
               const dateKey = formatDate(date);
               return (
                 <div key={dateKey} className="contents">
-                  <div
-                    className={[
-                      'flex flex-col items-center justify-center rounded-xl py-2',
-                      isToday ? 'bg-accent/15' : '',
-                    ].join(' ')}
-                  >
+                  <div className="flex flex-col items-center justify-center gap-0.5">
                     <span
                       className={[
-                        'text-[8px] uppercase font-semibold leading-none tracking-tight',
+                        'text-caption2 uppercase font-semibold',
                         isToday ? 'text-accent' : 'text-text-muted',
                       ].join(' ')}
                     >
-                      {formatDayName(date)}
+                      {formatDayShort(date)}
                     </span>
                     <span
                       className={[
-                        'text-lg leading-tight tabular-nums font-semibold',
-                        isToday ? 'text-accent' : 'text-text',
+                        'w-8 h-8 rounded-full flex items-center justify-center text-title3 tabular-nums',
+                        isToday ? 'bg-accent text-white' : 'text-text',
                       ].join(' ')}
                     >
                       {formatDayNumber(date)}
@@ -191,11 +185,11 @@ export function WeekView({ week, entries }: WeekViewProps) {
 
         <DragOverlay>
           {activeEntry ? (
-            <div className="rounded-xl bg-surface px-3 py-2 flex items-center gap-2 shadow-2xl ring-2 ring-accent/60 scale-105">
+            <div className="rounded-[14px] bg-surface px-3 py-2 flex items-center gap-2 scale-105" style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.25), 0 0 0 0.5px var(--separator)' }}>
               <span className="text-2xl" aria-hidden>
                 {activeEntry.recipe?.emoji ?? '🍽️'}
               </span>
-              <span className="text-sm font-medium truncate max-w-[120px]">
+              <span className="text-subhead font-semibold truncate max-w-[120px]">
                 {activeEntry.recipe?.name ?? 'Receta'}
               </span>
             </div>

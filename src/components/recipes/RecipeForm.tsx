@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { RecipeWithIngredients } from '@/types';
 import { RECIPE_TAGS } from '@/types';
 import type { RecipeIngredientInput } from '@/schemas';
-import { Button } from '@/components/ui/Button';
 import { Stepper } from '@/components/ui/Stepper';
+import { Switch } from '@/components/ui/Switch';
+import { ListRow, ListSection } from '@/components/ui/List';
+import { Chip, NavBar } from '@/components/ui/NavBar';
 import { createRecipeAction, updateRecipeAction } from '@/actions/recipes';
 import { IngredientRepeater } from './IngredientRepeater';
 
@@ -15,9 +17,6 @@ interface RecipeFormProps {
   recipeId?: number;
   initial?: RecipeWithIngredients;
 }
-
-const inputCls =
-  'bg-surface-2 rounded-xl px-4 h-12 w-full text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent';
 
 export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
   const router = useRouter();
@@ -87,136 +86,139 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
     });
   };
 
+  const title = mode === 'create' ? 'Nueva receta' : 'Editar receta';
+
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="px-4 py-3 bg-danger/10 text-danger rounded-cell text-subhead">
-          {error}
+    <>
+      <NavBar
+        title={title}
+        leading={
+          <button
+            type="button"
+            onClick={() => router.back()}
+            disabled={isPending}
+            className="h-11 px-2 text-body text-accent active:opacity-50 disabled:opacity-40"
+          >
+            Cancelar
+          </button>
+        }
+        trailing={
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isPending || !name.trim()}
+            className="h-11 px-2 text-body font-semibold text-accent active:opacity-50 disabled:opacity-40"
+          >
+            {isPending ? 'Guardando…' : 'Guardar'}
+          </button>
+        }
+      />
+
+      <div className="px-4 pt-4 space-y-7">
+        {error && <div className="px-4 py-3 bg-danger/10 text-danger rounded-cell text-subhead">{error}</div>}
+
+        <div className="flex flex-col items-center gap-2">
+          <input
+            type="text"
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value)}
+            aria-label="Emoji"
+            className="w-24 h-24 rounded-[28px] bg-surface text-center text-[52px] leading-none outline-none caret-accent focus:ring-2 focus:ring-accent/40"
+            maxLength={8}
+          />
+          <span className="text-footnote text-text-muted">Toca para cambiar el emoji</span>
         </div>
-      )}
 
-      <label className="block">
-        <span className="text-sm text-text-muted">Nombre</span>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Pasta carbonara"
-          className={`${inputCls} mt-1`}
-          required
-        />
-      </label>
+        <ListSection>
+          <FieldRow>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nombre (p. ej. Pasta carbonara)"
+              aria-label="Nombre"
+              className={fieldCls}
+              required
+            />
+          </FieldRow>
+          <FieldRow>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descripción"
+              aria-label="Descripción"
+              rows={2}
+              className={`${fieldCls} resize-none py-0 min-h-[44px]`}
+            />
+          </FieldRow>
+        </ListSection>
 
-      <label className="block">
-        <span className="text-sm text-text-muted">Emoji</span>
-        <input
-          type="text"
-          value={emoji}
-          onChange={(e) => setEmoji(e.target.value)}
-          className={`${inputCls} mt-1 text-center text-2xl`}
-          maxLength={8}
-        />
-      </label>
+        <ListSection>
+          <ListRow
+            title="Comensales base"
+            accessory={<Stepper value={baseServings} onChange={setBaseServings} min={1} max={20} />}
+          />
+          <ListRow
+            title="Tiempo (min)"
+            accessory={
+              <input
+                type="text"
+                inputMode="numeric"
+                value={prepTime}
+                onChange={(e) => setPrepTime(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="20"
+                aria-label="Tiempo de preparación en minutos"
+                className="w-20 bg-transparent text-right text-body text-text-muted placeholder:text-text-tertiary outline-none caret-accent"
+              />
+            }
+          />
+          <ListRow
+            title="Favorita"
+            accessory={<Switch checked={isFavorite} onChange={setIsFavorite} label="Favorita" />}
+          />
+        </ListSection>
 
-      <div>
-        <span className="text-sm text-text-muted">Tags</span>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {RECIPE_TAGS.map((tag) => {
-            const selected = tags.includes(tag);
-            return (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => toggleTag(tag)}
-                className={[
-                  'px-3 h-9 rounded-full text-sm font-medium transition-all active:scale-95',
-                  selected ? 'bg-accent text-white' : 'bg-surface-2 text-text-muted',
-                ].join(' ')}
-              >
+        <section>
+          <h2 className="px-4 pb-[7px] text-footnote text-text-muted">Etiquetas</h2>
+          <div className="flex flex-wrap gap-2">
+            {RECIPE_TAGS.map((tag) => (
+              <Chip key={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)}>
                 {tag}
-              </button>
-            );
-          })}
-        </div>
+              </Chip>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="px-4 pb-[7px] text-footnote text-text-muted">Ingredientes</h2>
+          <IngredientRepeater value={ingredients} onChange={setIngredients} />
+        </section>
+
+        <ListSection header="Notas">
+          <FieldRow>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Trucos, sustituciones…"
+              aria-label="Notas"
+              rows={3}
+              className={`${fieldCls} resize-none py-0 min-h-[66px]`}
+            />
+          </FieldRow>
+        </ListSection>
       </div>
+    </>
+  );
+}
 
-      <div className="bg-surface rounded-2xl p-4 flex items-center justify-between">
-        <span className="text-sm text-text-muted">Comensales base</span>
-        <Stepper value={baseServings} onChange={setBaseServings} min={1} max={20} />
-      </div>
+const fieldCls =
+  'w-full bg-transparent text-body text-text placeholder:text-text-muted outline-none caret-accent';
 
-      <label className="block">
-        <span className="text-sm text-text-muted">Tiempo de preparación (min)</span>
-        <input
-          type="text"
-          inputMode="numeric"
-          value={prepTime}
-          onChange={(e) => setPrepTime(e.target.value.replace(/[^0-9]/g, ''))}
-          placeholder="20"
-          className={`${inputCls} mt-1`}
-        />
-      </label>
-
-      <label className="block">
-        <span className="text-sm text-text-muted">Descripción</span>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Una breve descripción de la receta..."
-          className="bg-surface-2 rounded-xl px-4 py-3 w-full text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent mt-1 min-h-24"
-        />
-      </label>
-
-      <label className="flex items-center justify-between bg-surface rounded-2xl px-4 h-14 cursor-pointer">
-        <span className="font-medium">⭐ Favorita</span>
-        <input
-          type="checkbox"
-          checked={isFavorite}
-          onChange={(e) => setIsFavorite(e.target.checked)}
-          className="sr-only peer"
-        />
-        <span className="relative w-12 h-7 bg-surface-2 rounded-full peer-checked:bg-accent transition-colors">
-          <span className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
-        </span>
-      </label>
-
-      <div>
-        <h3 className="text-sm text-text-muted mb-2">Ingredientes</h3>
-        <IngredientRepeater value={ingredients} onChange={setIngredients} />
-      </div>
-
-      <label className="block">
-        <span className="text-sm text-text-muted">Notas</span>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Trucos, sustituciones..."
-          className="bg-surface-2 rounded-xl px-4 py-3 w-full text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent mt-1 min-h-24"
-        />
-      </label>
-
-      <div className="flex gap-3 pt-2">
-        <Button
-          type="button"
-          variant="secondary"
-          size="lg"
-          fullWidth
-          onClick={() => router.back()}
-          disabled={isPending}
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={handleSubmit}
-          disabled={isPending}
-        >
-          {isPending ? 'Guardando...' : 'Guardar'}
-        </Button>
-      </div>
+/** A text-entry cell inside a ListSection (UITextField in a grouped table). */
+function FieldRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="list-row pl-4">
+      <div className="list-row-content py-[11px] pr-4">{children}</div>
     </div>
   );
 }

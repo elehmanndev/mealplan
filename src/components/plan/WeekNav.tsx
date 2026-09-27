@@ -1,53 +1,64 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Home, MoreVertical } from 'lucide-react';
-import { formatWeekLabel, getNextWeek, getPrevWeek } from '@/lib/week';
+import { ChevronLeft, ChevronRight, Ellipsis } from 'lucide-react';
+import { formatWeekRange, getCurrentWeek, getNextWeek, getPrevWeek } from '@/lib/week';
+import { NavBar, NavBarButton } from '@/components/ui/NavBar';
 
 interface WeekNavProps {
   week: string;
   onOpenActions: () => void;
 }
 
-const iconBtn =
-  'w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-2 text-text shrink-0';
+const stepBtn =
+  'w-9 h-9 flex items-center justify-center rounded-full bg-fill text-accent active:bg-[var(--fill-pressed)] transition-colors';
 
+/**
+ * Large-title "Plan" bar with a Calendar.app-style week switcher beneath:
+ * ‹ 26 sep – 2 oct › plus a "Hoy" capsule when browsing another week.
+ */
 export function WeekNav({ week, onOpenActions }: WeekNavProps) {
   const prev = getPrevWeek(week);
   const next = getNextWeek(week);
+  const current = getCurrentWeek();
+  const isCurrent = week === current;
 
   return (
-    <header className="sticky top-0 z-20 glass-top safe-top">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center px-4 py-3">
+    <NavBar
+      title="Plan"
+      large
+      leading={
         <Link
           href="/home"
-          aria-label="Inicio"
-          className={`${iconBtn} text-text-muted`}
+          className="h-11 px-2 flex items-center text-body text-accent active:opacity-50 transition-opacity"
         >
-          <Home size={22} />
+          Inicio
         </Link>
-
-        <div className="flex items-center justify-center gap-1">
-          <Link href={`/?week=${prev}`} aria-label="Semana anterior" className={iconBtn}>
-            <ChevronLeft size={22} />
+      }
+      trailing={
+        <NavBarButton label="Acciones de semana" onClick={onOpenActions}>
+          <Ellipsis size={24} strokeWidth={2.25} />
+        </NavBarButton>
+      }
+      bottom={
+        <div className="flex items-center gap-2 px-4">
+          <Link href={`/?week=${prev}`} aria-label="Semana anterior" className={stepBtn}>
+            <ChevronLeft size={20} strokeWidth={2.5} />
           </Link>
-          <div className="flex items-center justify-center min-w-[100px]">
-            <span className="font-semibold text-base tabular-nums">{formatWeekLabel(week)}</span>
-          </div>
-          <Link href={`/?week=${next}`} aria-label="Semana siguiente" className={iconBtn}>
-            <ChevronRight size={22} />
+          <div className="flex-1 text-center text-headline tabular-nums">{formatWeekRange(week)}</div>
+          {!isCurrent && (
+            <Link
+              href={`/?week=${current}`}
+              className="h-9 px-3.5 rounded-full bg-fill text-accent text-subhead font-semibold flex items-center active:bg-[var(--fill-pressed)]"
+            >
+              Hoy
+            </Link>
+          )}
+          <Link href={`/?week=${next}`} aria-label="Semana siguiente" className={stepBtn}>
+            <ChevronRight size={20} strokeWidth={2.5} />
           </Link>
         </div>
-
-        <button
-          type="button"
-          onClick={onOpenActions}
-          aria-label="Acciones de semana"
-          className={iconBtn}
-        >
-          <MoreVertical size={22} />
-        </button>
-      </div>
-    </header>
+      }
+    />
   );
 }

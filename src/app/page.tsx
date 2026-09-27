@@ -20,10 +20,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const recipeCount = countRecipes(householdId);
 
   return (
-    <main className="flex flex-col min-h-dvh pb-24">
+    <main className="flex flex-col min-h-dvh pb-28">
       <h1 className="sr-only">Plan semanal</h1>
-      {recipeCount === 0 && <EmptyHouseholdState />}
-      <WeekView week={week} entries={entries} />
+      <WeekView week={week} entries={entries} banner={recipeCount === 0 ? <EmptyHouseholdState /> : null} />
       <BottomNav currentWeek={week} />
     </main>
   );
