@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Check, Copy, Link as LinkIcon } from 'lucide-react';
+import { ListRow, ListSection } from '@/components/ui/List';
 import { createInviteAction } from '@/actions/household';
 import { useToast } from '@/components/ui/Toast';
 
@@ -72,37 +73,27 @@ export function InviteButton() {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={generate}
-        disabled={pending}
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-60"
-      >
-        <LinkIcon size={20} className="text-text-muted shrink-0" />
-        <div className="flex-1">
-          <div className="font-medium text-text">
-            {pending ? 'Generando enlace…' : url ? 'Generar otro enlace' : 'Invitar a alguien'}
-          </div>
-          <div className="text-xs text-text-muted">
-            Crea un enlace de un solo uso que caduca en 7 días
-          </div>
-        </div>
-      </button>
+    <div className="flex flex-col gap-3">
+      <ListSection footer="Crea un enlace de un solo uso que caduca en 7 días.">
+        <ListRow
+          icon={LinkIcon}
+          title={pending ? 'Generando enlace…' : url ? 'Generar otro enlace' : 'Invitar a alguien'}
+          onClick={generate}
+          disabled={pending}
+        />
+      </ListSection>
 
       {url && (
-        <div className="rounded-2xl bg-surface ring-1 ring-[color:var(--glass-border)] p-3 flex flex-col gap-2">
-          <div className="text-[11px] uppercase tracking-wider text-text-muted px-1">
-            Comparte este enlace
-          </div>
-          <div className="font-mono text-[12px] text-text break-all px-1 leading-snug">
+        <div className="rounded-cell bg-surface p-4 flex flex-col gap-2">
+          <div className="text-footnote text-text-muted">Comparte este enlace</div>
+          <div className="font-mono text-footnote text-text break-all leading-snug">
             {url}
           </div>
           <div className="flex gap-2 pt-1">
             <button
               type="button"
               onClick={copy}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-10 rounded-xl bg-accent/15 text-accent text-sm font-medium active:scale-[0.99] transition-transform"
+              className="flex-1 inline-flex items-center justify-center gap-2 h-10 rounded-full bg-fill text-accent text-subhead font-semibold active:bg-[var(--fill-pressed)] transition-colors"
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? 'Copiado' : 'Copiar'}
@@ -110,10 +101,7 @@ export function InviteButton() {
             <button
               type="button"
               onClick={share}
-              className="flex-1 inline-flex items-center justify-center h-10 rounded-xl text-white text-sm font-medium active:scale-[0.99] transition-transform"
-              style={{
-                background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 55%, #A855F7 100%)',
-              }}
+              className="flex-1 inline-flex items-center justify-center h-10 rounded-full bg-accent text-white text-subhead font-semibold active:opacity-80 transition-opacity"
             >
               Compartir
             </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Trash2 } from 'lucide-react';
+import { MinusCircle } from 'lucide-react';
 import { removeMemberAction } from '@/actions/household';
 import { useToast } from '@/components/ui/Toast';
 
@@ -45,9 +45,9 @@ export function RemoveMemberButton({ userId, memberLabel }: RemoveMemberButtonPr
         type="button"
         onClick={arm}
         aria-label={`Quitar a ${memberLabel}`}
-        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full text-text-muted active:text-danger transition-colors"
+        className="shrink-0 inline-flex items-center justify-center w-9 h-9 text-danger active:opacity-50"
       >
-        <Trash2 size={16} />
+        <MinusCircle size={22} className="fill-danger text-surface" />
       </button>
     );
   }
@@ -58,7 +58,7 @@ export function RemoveMemberButton({ userId, memberLabel }: RemoveMemberButtonPr
         type="button"
         onClick={() => setConfirming(false)}
         disabled={pending}
-        className="text-xs text-text-muted px-2 h-9 rounded-full hover:text-text transition-colors disabled:opacity-50"
+        className="text-subhead text-accent px-2 h-9 active:opacity-50 disabled:opacity-40"
       >
         Cancelar
       </button>
@@ -66,7 +66,7 @@ export function RemoveMemberButton({ userId, memberLabel }: RemoveMemberButtonPr
         type="button"
         onClick={execute}
         disabled={pending}
-        className="text-xs font-medium text-white bg-danger px-3 h-9 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+        className="text-subhead font-semibold text-white bg-danger px-3 h-8 rounded-full active:opacity-80 disabled:opacity-40"
       >
         {pending ? 'Quitando…' : 'Quitar'}
       </button>

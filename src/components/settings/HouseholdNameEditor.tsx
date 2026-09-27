@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Check, Pencil, X } from 'lucide-react';
 import { renameHouseholdAction } from '@/actions/household';
 import { useToast } from '@/components/ui/Toast';
 
@@ -57,16 +56,16 @@ export function HouseholdNameEditor({ initialName, canEdit }: HouseholdNameEdito
 
   if (!editing) {
     return (
-      <div className="bg-surface rounded-2xl px-4 py-3 flex items-center gap-3">
-        <div className="flex-1 min-w-0 text-text font-medium truncate">{name}</div>
+      <div className="bg-surface rounded-cell pl-4 pr-2 min-h-[44px] flex items-center gap-3">
+        <div className="flex-1 min-w-0 text-body text-text truncate">{name}</div>
         {canEdit && (
           <button
             type="button"
             onClick={startEdit}
             aria-label="Editar nombre"
-            className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full text-text-muted hover:text-text transition-colors"
+            className="shrink-0 h-9 px-2 text-body text-accent active:opacity-50"
           >
-            <Pencil size={16} />
+            Editar
           </button>
         )}
       </div>
@@ -74,7 +73,7 @@ export function HouseholdNameEditor({ initialName, canEdit }: HouseholdNameEdito
   }
 
   return (
-    <div className="bg-surface rounded-2xl px-3 py-2 flex items-center gap-2">
+    <div className="bg-surface rounded-cell pl-4 pr-2 min-h-[44px] flex items-center gap-2">
       <input
         type="text"
         value={draft}
@@ -91,25 +90,25 @@ export function HouseholdNameEditor({ initialName, canEdit }: HouseholdNameEdito
         maxLength={60}
         disabled={pending}
         autoFocus
-        className="flex-1 min-w-0 h-10 rounded-xl bg-bg ring-1 ring-[color:var(--glass-border)] px-3 text-[15px] text-text focus:outline-none focus:ring-2 focus:ring-violet-400"
+        className="flex-1 min-w-0 h-11 bg-transparent text-body text-text outline-none caret-accent"
       />
       <button
         type="button"
         onClick={cancel}
         disabled={pending}
         aria-label="Cancelar"
-        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full text-text-muted hover:text-text transition-colors disabled:opacity-50"
+        className="shrink-0 h-9 px-2 text-body text-accent active:opacity-50 disabled:opacity-40"
       >
-        <X size={18} />
+        Cancelar
       </button>
       <button
         type="button"
         onClick={save}
         disabled={pending}
         aria-label="Guardar"
-        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full text-white bg-accent disabled:opacity-50"
+        className="shrink-0 h-9 px-2 text-body font-semibold text-accent active:opacity-50 disabled:opacity-40"
       >
-        <Check size={18} />
+        OK
       </button>
     </div>
   );

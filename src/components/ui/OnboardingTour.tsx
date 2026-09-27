@@ -101,38 +101,39 @@ export function OnboardingTour() {
       role="dialog"
       aria-modal="true"
       aria-label="Cómo funciona MealPlan"
-      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-2"
+      style={{ background: 'var(--backdrop)' }}
       onClick={close}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-bg ring-1 ring-[color:var(--glass-border)] p-6 pb-8 safe-bottom"
+        className="w-full max-w-md rounded-sheet p-6 pb-6"
+        style={{ background: 'rgb(var(--sheet))', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', marginBottom: 'max(0px, calc(env(safe-area-inset-bottom) - 28px))' }}
       >
         <div className="flex items-start justify-between mb-1">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+          <div className="text-footnote text-text-muted tabular-nums">
             {step + 1} / {TIPS.length}
           </div>
           <button
             type="button"
             onClick={close}
             aria-label="Cerrar"
-            className="p-1 -m-1 rounded-full text-text-muted hover:text-text"
+            className="w-8 h-8 -mt-1 -mr-1 rounded-full bg-fill flex items-center justify-center text-text-muted active:scale-90 transition-transform"
           >
-            <X size={18} />
+            <X size={16} strokeWidth={2.5} />
           </button>
         </div>
 
         <div className="flex items-center gap-3 mb-3 mt-1">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0"
-            style={{ background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 55%, #A855F7 100%)' }}
+            className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white shrink-0 bg-accent"
           >
             {tip.icon}
           </div>
-          <h2 className="text-lg font-semibold text-text leading-snug">{tip.title}</h2>
+          <h2 className="text-title3 text-text">{tip.title}</h2>
         </div>
 
-        <p className="text-sm text-text-muted leading-relaxed">{tip.body}</p>
+        <p className="text-body text-text-muted">{tip.body}</p>
 
         <div className="flex items-center gap-2 mt-6">
           <div className="flex-1 flex items-center gap-1.5">
@@ -140,8 +141,8 @@ export function OnboardingTour() {
               <span
                 key={i}
                 className={[
-                  'h-1.5 rounded-full transition-all',
-                  i === step ? 'w-6 bg-accent' : 'w-1.5 bg-text-muted/30',
+                  'h-2 rounded-full transition-colors',
+                  i === step ? 'w-2 bg-text' : 'w-2 bg-text-tertiary',
                 ].join(' ')}
               />
             ))}
@@ -150,7 +151,7 @@ export function OnboardingTour() {
             <button
               type="button"
               onClick={prev}
-              className="h-10 px-4 rounded-2xl text-sm font-medium text-text-muted hover:text-text transition-colors"
+              className="h-11 px-4 rounded-full text-body text-accent active:opacity-50"
             >
               Atrás
             </button>
@@ -158,10 +159,7 @@ export function OnboardingTour() {
           <button
             type="button"
             onClick={next}
-            className="h-10 px-5 rounded-2xl text-white text-sm font-medium active:scale-[0.985] transition-transform"
-            style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 55%, #A855F7 100%)',
-            }}
+            className="h-11 px-5 rounded-full bg-accent text-white text-body font-semibold active:opacity-80 transition-opacity"
           >
             {isLast ? 'Empezar' : 'Siguiente'}
           </button>

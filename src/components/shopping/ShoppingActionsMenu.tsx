@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipboardCopy, RotateCcw } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { Button } from '@/components/ui/Button';
+import { ConfirmActions } from '@/components/ui/ConfirmActions';
+import { ListRow, ListSection } from '@/components/ui/List';
 import { useToast } from '@/components/ui/Toast';
 import { resetChecksAction } from '@/actions/shopping';
 
@@ -54,53 +55,28 @@ export function ShoppingActionsMenu({ week, open, onClose }: ShoppingActionsMenu
   return (
     <BottomSheet open={open} onClose={onClose} title="Opciones">
       {mode === 'confirm-reset' ? (
-        <div className="space-y-4">
-          <p className="text-text-muted">¿Reiniciar todos los checks de esta semana?</p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              fullWidth
-              onClick={() => setMode('menu')}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              fullWidth
-              onClick={handleResetConfirmed}
-              disabled={isPending}
-            >
-              Reiniciar
-            </Button>
-          </div>
-        </div>
+        <ConfirmActions
+          message="¿Desmarcar todos los items de esta semana?"
+          confirmLabel="Desmarcar todo"
+          onConfirm={handleResetConfirmed}
+          onCancel={() => setMode('menu')}
+          disabled={isPending}
+        />
       ) : (
-        <ul className="flex flex-col">
-          <li>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="w-full flex items-center gap-3 min-h-touch px-2 py-3 text-left hover:bg-surface-2 rounded-xl"
-            >
-              <ClipboardCopy size={20} className="text-text-muted" />
-              <span className="flex-1">Copiar al portapapeles</span>
-              {copied && <span className="text-accent text-sm">Copiado ✓</span>}
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              onClick={() => setMode('confirm-reset')}
-              className="w-full flex items-center gap-3 min-h-touch px-2 py-3 text-left hover:bg-surface-2 rounded-xl"
-            >
-              <RotateCcw size={20} className="text-text-muted" />
-              <span>Reset checks</span>
-            </button>
-          </li>
-        </ul>
+        <ListSection>
+          <ListRow
+            icon={ClipboardCopy}
+            title="Copiar al portapapeles"
+            value={copied ? 'Copiado' : undefined}
+            onClick={handleCopy}
+          />
+          <ListRow
+            icon={RotateCcw}
+            iconBg="rgb(var(--warning))"
+            title="Desmarcar todo"
+            onClick={() => setMode('confirm-reset')}
+          />
+        </ListSection>
       )}
     </BottomSheet>
   );

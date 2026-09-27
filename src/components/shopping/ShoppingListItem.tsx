@@ -2,7 +2,6 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Circle, CheckCircle2, X } from 'lucide-react';
 import type { ShoppingItem } from '@/lib/shopping-types';
 import {
   removeExtraAction,
@@ -11,6 +10,7 @@ import {
   toggleExtraCheckAction,
 } from '@/actions/shopping';
 import { useToast } from '@/components/ui/Toast';
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 
 interface ShoppingListItemProps {
   item: ShoppingItem;
@@ -38,8 +38,7 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
     });
   }
 
-  function handleRemove(e: React.MouseEvent) {
-    e.stopPropagation();
+  function handleRemove() {
     startTransition(async () => {
       try {
         if (item.kind === 'recipe') {
@@ -55,50 +54,42 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
   }
 
   const checked = item.checked;
-  const Icon = checked ? CheckCircle2 : Circle;
+  const qty = item.parts.map((p) => `${p.quantity} ${p.unit}`).join(' + ');
 
   return (
-    <div
-      className={[
-        'flex items-center w-full select-none transition-opacity',
-        pending ? 'opacity-50' : '',
-      ].join(' ')}
-    >
-      <button
-        type="button"
-        onClick={handleToggle}
-        disabled={pending}
-        aria-pressed={checked}
-        className="min-h-touch px-1 py-2 flex items-center gap-3 flex-1 min-w-0 text-left"
-        style={{ touchAction: 'manipulation' }}
-      >
-        <Icon
-          size={24}
-          className={['shrink-0', checked ? 'text-accent' : 'text-text-muted'].join(' ')}
-        />
-        <div
-          className={[
-            'flex-1 min-w-0 flex items-baseline gap-2',
-            checked ? 'line-through text-text-muted' : '',
-          ].join(' ')}
+    <SwipeToDelete onDelete={handleRemove} disabled={pending} label={`Quitar ${item.name} de la lista`}>
+      <div className={['list-row flex items-center w-full select-none bg-surface', pending ? 'opacity-50' : ''].join(' ')}>
+        <button
+          type="button"
+          onClick={handleToggle}
+          disabled={pending}
+          aria-pressed={checked}
+          className="flex items-center gap-3 flex-1 min-w-0 pl-4 text-left"
+          style={{ touchAction: 'pan-y' }}
         >
-          <span className="truncate">{item.name}</span>
-          {item.parts.length > 0 && (
-            <span className="text-text-muted tabular-nums text-sm shrink-0">
-              {item.parts.map((p) => `${p.quantity} ${p.unit}`).join(' + ')}
+          {/* Reminders.app radio: hollow ring → filled tint disc with inner dot */}
+          <span
+            className={[
+              'shrink-0 w-[22px] h-[22px] rounded-full flex items-center justify-center transition-colors duration-200',
+              checked ? 'bg-accent' : 'ring-[1.5px] ring-inset ring-text-tertiary',
+            ].join(' ')}
+            aria-hidden
+          >
+            {checked && <span className="w-2 h-2 rounded-full bg-white" />}
+          </span>
+          <span className="list-row-content flex-1 min-w-0 flex items-center gap-2 py-[11px] pr-4">
+            <span
+              className={[
+                'flex-1 truncate text-body transition-colors',
+                checked ? 'text-text-muted' : 'text-text',
+              ].join(' ')}
+            >
+              {item.name}
             </span>
-          )}
-        </div>
-      </button>
-      <button
-        type="button"
-        onClick={handleRemove}
-        disabled={pending}
-        aria-label={`Quitar ${item.name} de la lista`}
-        className="shrink-0 min-h-touch min-w-touch flex items-center justify-center text-text-tertiary active:text-danger transition-colors"
-      >
-        <X size={18} />
-      </button>
-    </div>
+            {qty && <span className="shrink-0 text-subhead text-text-muted tabular-nums">{qty}</span>}
+          </span>
+        </button>
+      </div>
+    </SwipeToDelete>
   );
 }

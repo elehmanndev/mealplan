@@ -86,7 +86,7 @@ export function ChatUsageBar({
         </span>
       </div>
       <div
-        className={`w-full ${compact ? 'h-1' : 'h-1.5'} rounded-full overflow-hidden bg-[color:var(--glass-border)]`}
+        className={`w-full ${compact ? 'h-1' : 'h-1.5'} rounded-full overflow-hidden bg-fill`}
         role="progressbar"
         aria-valuenow={used}
         aria-valuemin={0}

@@ -46,23 +46,19 @@ export default async function WelcomePage() {
               placeholder="Casa García"
               autoComplete="off"
               autoFocus
-              className="h-12 rounded-2xl bg-surface ring-1 ring-[color:var(--glass-border)] px-4 text-[15px] text-text placeholder:text-text-muted/60 focus:outline-none focus:ring-2 focus:ring-violet-400"
+              className="h-11 rounded-[12px] bg-surface px-4 text-body text-text placeholder:text-text-muted outline-none caret-accent focus:ring-2 focus:ring-accent/40"
             />
           </label>
 
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center h-12 rounded-2xl text-white font-medium text-[15px] active:scale-[0.985] transition-transform"
-            style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 55%, #A855F7 100%)',
-              boxShadow: '0 12px 30px -10px rgba(124, 58, 237, 0.6), 0 4px 12px -4px rgba(99, 102, 241, 0.4)',
-            }}
+            className="w-full inline-flex items-center justify-center h-[50px] rounded-full bg-accent text-white font-semibold text-body active:opacity-80 transition-opacity"
           >
             Crear casa
           </button>
         </form>
 
-        <div className="w-full pt-2 border-t border-[color:var(--glass-border)]">
+        <div className="w-full pt-2 border-t border-separator">
           <p className="text-[12px] text-text-muted/80 text-center leading-relaxed pt-4">
             ¿Te invitaron? Abre el enlace que te enviaron — no necesitas crear nada
             aquí.

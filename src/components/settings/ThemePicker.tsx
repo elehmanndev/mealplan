@@ -17,7 +17,7 @@ export function ThemePicker() {
   }
 
   return (
-    <div className="bg-surface rounded-cell px-4 py-3">
+    <div>
       <SegmentedControl<ThemePreference>
         ariaLabel="Apariencia"
         value={theme}

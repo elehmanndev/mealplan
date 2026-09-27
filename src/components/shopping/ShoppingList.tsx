@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import type { ShoppingGroup } from '@/lib/shopping-types';
-import { getSupermarket, type SupermarketTheme } from '@/lib/supermarkets';
+import { getSupermarket } from '@/lib/supermarkets';
 import { ShoppingListItem } from './ShoppingListItem';
 import { AddExtraSheet } from './AddExtraSheet';
 
@@ -12,17 +12,11 @@ interface ShoppingListProps {
   week: string;
 }
 
-const NEUTRAL_THEME: SupermarketTheme = {
-  bg: 'bg-surface',
-  border: 'border-[color:var(--glass-border)]',
-  header: 'text-text-muted',
-  divider: 'divide-[color:var(--glass-border)]',
-};
-
-function getTheme(id: string | null): SupermarketTheme {
-  return getSupermarket(id)?.theme ?? NEUTRAL_THEME;
-}
-
+/**
+ * Reminders.app layout: one inset-grouped section per supermarket. The
+ * store's brand color survives as the header text (like a list's color in
+ * Reminders); rows stay neutral so the whole screen reads as one system.
+ */
 export function ShoppingList({ groups, week }: ShoppingListProps) {
   // Single shared sheet; each group's add line opens it preset to that
   // supermarket. `null` targets the "Sin asignar" group.
@@ -42,24 +36,24 @@ export function ShoppingList({ groups, week }: ShoppingListProps) {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-6">
         {displayGroups.map((group) => {
-          const theme = getTheme(group.supermarket);
+          const header = getSupermarket(group.supermarket)?.theme.header ?? 'text-text';
+          const pending = group.items.filter((i) => !i.checked).length;
           return (
-            <details
-              key={group.supermarket ?? '__none__'}
-              open
-              className={['rounded-2xl px-4 py-3 border shadow-soft', theme.bg, theme.border].join(' ')}
-            >
-              <summary className="flex items-center justify-between cursor-pointer list-none min-h-touch select-none">
-                <span className={['uppercase tracking-wide text-sm font-semibold', theme.header].join(' ')}>
-                  {group.label}
-                </span>
-                <span className={['text-sm tabular-nums', theme.header, 'opacity-70'].join(' ')}>
-                  {group.items.length}
+            <details key={group.supermarket ?? '__none__'} open className="group">
+              <summary className="flex items-center justify-between cursor-pointer list-none select-none px-4 pb-2 [&::-webkit-details-marker]:hidden">
+                <span className={['text-title3', header].join(' ')}>{group.label}</span>
+                <span className="flex items-center gap-1.5 text-subhead text-text-muted tabular-nums">
+                  {pending > 0 ? pending : group.items.length > 0 ? '✓' : ''}
+                  <ChevronDown
+                    size={18}
+                    strokeWidth={2.5}
+                    className="text-accent transition-transform duration-200 group-[:not([open])]:-rotate-90"
+                  />
                 </span>
               </summary>
-              <ul className={['mt-2 divide-y', theme.divider].join(' ')}>
+              <ul className="list-group rounded-cell bg-surface overflow-hidden">
                 {group.items.map((item) => (
                   <li key={`${item.kind}-${item.id}`}>
                     <ShoppingListItem item={item} week={week} />
@@ -69,10 +63,12 @@ export function ShoppingList({ groups, week }: ShoppingListProps) {
                   <button
                     type="button"
                     onClick={() => openAdd(group.supermarket)}
-                    className="w-full flex items-center gap-2 py-3 min-h-touch text-sm text-text-muted/50 hover:text-text-muted transition-colors"
+                    className="list-row w-full flex items-center gap-3 pl-4 text-left pressable"
                   >
-                    <Plus size={16} />
-                    Añadir item
+                    <span className="w-[22px] h-[22px] shrink-0 rounded-full bg-accent text-white flex items-center justify-center">
+                      <Plus size={15} strokeWidth={3} />
+                    </span>
+                    <span className="list-row-content flex-1 py-[11px] text-body text-accent">Añadir item</span>
                   </button>
                 </li>
               </ul>

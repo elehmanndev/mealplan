@@ -1,6 +1,7 @@
-import Link from 'next/link';
-import { Home as HomeIcon, ChevronRight, LogOut } from 'lucide-react';
+import { FileText, Home as HomeIcon, Info, Shield } from 'lucide-react';
 import { BottomNav } from '@/components/ui/BottomNav';
+import { NavBar } from '@/components/ui/NavBar';
+import { ListRow, ListSection } from '@/components/ui/List';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { DataActions } from '@/components/settings/DataActions';
 import { ChatUsageBar } from '@/components/chat/ChatUsageBar';
@@ -23,102 +24,57 @@ export default async function SettingsPage() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen bg-bg safe-top pb-24">
-      <div className="flex-1 flex flex-col px-4 pt-12 gap-8">
-        <h1 className="text-3xl font-bold text-text">Ajustes</h1>
-
+    <main className="flex flex-col min-h-dvh pb-28">
+      <NavBar title="Ajustes" large />
+      <div className="flex-1 flex flex-col px-4 pt-2 gap-7">
         {user && (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
-              Cuenta
-            </h2>
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface">
-              <Avatar name={user.name ?? user.email} image={user.image} />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-text truncate">
-                  {user.name?.trim() || user.email}
-                </div>
-                <div className="text-xs text-text-muted truncate">{user.email}</div>
-              </div>
-            </div>
-            <Link
-              href="/settings/household"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-            >
-              <HomeIcon size={20} className="text-text-muted shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-text">Mi casa</div>
-                <div className="text-xs text-text-muted truncate">Miembros e invitaciones</div>
-              </div>
-              <ChevronRight size={18} className="text-text-muted shrink-0" />
-            </Link>
+          <>
+            <ListSection>
+              <ListRow
+                leading={<Avatar name={user.name ?? user.email} image={user.image} />}
+                title={<span className="text-title3">{user.name?.trim() || user.email}</span>}
+                subtitle={user.email}
+              />
+            </ListSection>
+
+            <ListSection>
+              <ListRow icon={HomeIcon} iconBg="rgb(var(--warning))" title="Mi casa" subtitle="Miembros e invitaciones" href="/settings/household" />
+            </ListSection>
+
             {usage && (
-              <div className="px-4 py-3 rounded-2xl bg-surface">
-                <ChatUsageBar initialUsed={usage.used} initialCap={usage.cap} />
-              </div>
-            )}
-            <form action={doSignOut}>
-              <button
-                type="submit"
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-              >
-                <LogOut size={20} className="text-text-muted shrink-0" />
-                <div className="flex-1">
-                  <div className="font-medium text-text">Cerrar sesión</div>
+              <ListSection header="Asistente IA">
+                <div className="px-4 py-3">
+                  <ChatUsageBar initialUsed={usage.used} initialCap={usage.cap} />
                 </div>
-              </button>
-            </form>
-          </section>
+              </ListSection>
+            )}
+          </>
         )}
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
-            Apariencia
-          </h2>
-          <ThemePicker />
-        </section>
+        <ListSection header="Apariencia">
+          <div className="px-4 py-3">
+            <ThemePicker />
+          </div>
+        </ListSection>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
-            Datos
-          </h2>
+        <ListSection header="Datos">
           <DataActions />
-        </section>
+        </ListSection>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted px-1">
-            Acerca de
-          </h2>
-          <Link
-            href="/?tour=1"
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-          >
-            <span className="text-xl shrink-0" aria-hidden>👋</span>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-text">Ver tutorial</div>
-              <div className="text-xs text-text-muted truncate">Repasa cómo funciona en 4 pasos</div>
-            </div>
-          </Link>
-          <div className="bg-surface rounded-2xl px-4 py-3 flex items-center justify-between">
-            <span className="text-text-muted">Versión</span>
-            <span className="font-mono text-sm text-text">{pkg.version}</span>
-          </div>
-          <div className="flex items-center px-1 pt-1 text-xs text-text-muted">
-            <Link
-              href="/privacy"
-              className="inline-flex items-center min-h-[44px] px-2 hover:text-text transition-colors"
-            >
-              Privacidad
-            </Link>
-            <span aria-hidden className="opacity-40 px-1">·</span>
-            <Link
-              href="/terms"
-              className="inline-flex items-center min-h-[44px] px-2 hover:text-text transition-colors"
-            >
-              Términos
-            </Link>
-          </div>
-        </section>
+        <ListSection header="Acerca de">
+          <ListRow leading={<Tile bg="#34C759">👋</Tile>} title="Ver tutorial" subtitle="Repasa cómo funciona en 4 pasos" href="/?tour=1" />
+          <ListRow leading={<Tile bg="#8E8E93"><Info size={18} strokeWidth={2.25} /></Tile>} title="Versión" value={pkg.version} />
+          <ListRow leading={<Tile bg="#007AFF"><Shield size={18} strokeWidth={2.25} /></Tile>} title="Privacidad" href="/privacy" />
+          <ListRow leading={<Tile bg="#8E8E93"><FileText size={18} strokeWidth={2.25} /></Tile>} title="Términos" href="/terms" />
+        </ListSection>
+
+        {user && (
+          <form action={doSignOut}>
+            <ListSection>
+              <ListRow title={<span className="block text-center text-danger">Cerrar sesión</span>} type="submit" />
+            </ListSection>
+          </form>
+        )}
       </div>
 
       <BottomNav currentWeek={week} />
@@ -133,17 +89,28 @@ function Avatar({ name, image }: { name: string; image: string | null }) {
       <img
         src={image}
         alt=""
-        className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-[color:var(--glass-border)]"
+        className="w-[60px] h-[60px] rounded-full object-cover shrink-0 my-2"
       />
     );
   }
   const initial = (name.trim()[0] ?? '?').toUpperCase();
   return (
     <div
-      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold text-white shrink-0"
-      style={{ background: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 55%, #A855F7 100%)' }}
+      className="w-[60px] h-[60px] my-2 rounded-full flex items-center justify-center text-title2 text-white shrink-0"
+      style={{ background: 'linear-gradient(180deg, #A5A5AA 0%, #85858B 100%)' }}
     >
       {initial}
     </div>
+  );
+}
+
+function Tile({ bg, children }: { bg: string; children: React.ReactNode }) {
+  return (
+    <span
+      className="w-[30px] h-[30px] rounded-[8px] flex items-center justify-center text-white text-[17px]"
+      style={{ background: bg }}
+    >
+      {children}
+    </span>
   );
 }
