@@ -83,3 +83,18 @@ export function isSameDay(a: Date, b: Date): boolean {
 export function dateFromString(s: string): Date {
   return parse(s, 'yyyy-MM-dd', new Date());
 }
+
+export function formatDayShort(date: Date): string {
+  // "sáb", "dom", "lun"… — Calendar.app-style weekday header.
+  return format(date, 'EEE', { locale: es }).replace('.', '');
+}
+
+export function formatWeekRange(week: string): string {
+  // "26 sep – 2 oct" (or "3 – 9 oct" within one month).
+  const start = getWeekStart(week);
+  const end = addDays(start, 6);
+  if (start.getMonth() === end.getMonth()) {
+    return `${format(start, 'd')} – ${format(end, 'd MMM', { locale: es })}`;
+  }
+  return `${format(start, 'd MMM', { locale: es })} – ${format(end, 'd MMM', { locale: es })}`;
+}

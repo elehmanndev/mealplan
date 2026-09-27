@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Copy, Eye, Move, Trash2, Users } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
+import { ListRow, ListSection } from '@/components/ui/List';
 import { Stepper } from '@/components/ui/Stepper';
+import { ConfirmActions } from '@/components/ui/ConfirmActions';
 import {
   duplicatePlanEntryAction,
   movePlanEntryAction,
@@ -119,8 +120,8 @@ export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
     <BottomSheet open={open} onClose={handleClose} title={entry.recipe?.name ?? 'Plan'}>
       {mode === 'servings' ? (
         <div className="space-y-4">
-          <div className="bg-surface rounded-2xl p-4 flex items-center justify-between">
-            <span className="text-sm font-medium">Comensales</span>
+          <div className="bg-surface rounded-cell pl-4 pr-3 py-3 flex items-center justify-between">
+            <span className="text-body">Comensales</span>
             <Stepper value={servings} onChange={setServings} min={1} max={20} size="lg" />
           </div>
           <div className="flex gap-2">
@@ -147,89 +148,56 @@ export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
           </div>
         </div>
       ) : mode === 'confirm-delete' ? (
-        <div className="space-y-4">
-          <p className="text-text-muted">
-            ¿Eliminar <span className="text-text font-medium">{entry.recipe?.name ?? 'esta receta'}</span> del plan?
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              fullWidth
-              onClick={() => setMode('menu')}
-              disabled={isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="danger"
-              size="md"
-              fullWidth
-              onClick={handleDeleteConfirmed}
-              disabled={isPending}
-            >
-              Eliminar
-            </Button>
-          </div>
-        </div>
+        <ConfirmActions
+          message={<>¿Eliminar «{entry.recipe?.name ?? 'esta receta'}» del plan?</>}
+          confirmLabel="Eliminar del plan"
+          destructive
+          onConfirm={handleDeleteConfirmed}
+          onCancel={() => setMode('menu')}
+          disabled={isPending}
+        />
       ) : (
-        <ul className="space-y-1">
-          <li>
-            <button
-              type="button"
+        <div className="space-y-5">
+          <ListSection>
+            <ListRow
+              icon={Users}
+              iconBg="rgb(var(--warning))"
+              title="Editar comensales"
+              value={<>{entry.servings} pax</>}
               onClick={() => setMode('servings')}
               disabled={isPending}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
-            >
-              <Users size={20} className="text-text-muted shrink-0" />
-              <span className="font-medium flex-1">Editar comensales</span>
-              <span className="text-sm text-text-muted">{entry.servings} pax</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
+            />
+            <ListRow
+              icon={Move}
+              title="Mover a..."
               onClick={() => setMode('move')}
               disabled={isPending}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
-            >
-              <Move size={20} className="text-text-muted shrink-0" />
-              <span className="font-medium">Mover a...</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
+            />
+            <ListRow
+              icon={Copy}
+              iconBg="#5856D6"
+              title="Duplicar a..."
               onClick={() => setMode('duplicate')}
               disabled={isPending}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
-            >
-              <Copy size={20} className="text-text-muted shrink-0" />
-              <span className="font-medium">Duplicar a...</span>
-            </button>
-          </li>
-          <li>
-            <Link
+            />
+            <ListRow
+              icon={Eye}
+              iconBg="rgb(var(--success))"
+              title="Ver receta"
               href={`/recipes/${entry.recipe_id}`}
               onClick={handleClose}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-            >
-              <Eye size={20} className="text-text-muted shrink-0" />
-              <span className="font-medium">Ver receta</span>
-            </Link>
-          </li>
-          <li>
-            <button
-              type="button"
+            />
+          </ListSection>
+          <ListSection>
+            <ListRow
+              icon={Trash2}
+              destructive
+              title="Eliminar del plan"
               onClick={() => setMode('confirm-delete')}
               disabled={isPending}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
-            >
-              <Trash2 size={20} className="text-danger shrink-0" />
-              <span className="font-medium text-danger">Eliminar del plan</span>
-            </button>
-          </li>
-        </ul>
+            />
+          </ListSection>
+        </div>
       )}
     </BottomSheet>
   );

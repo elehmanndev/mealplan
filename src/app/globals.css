@@ -231,3 +231,16 @@ button {
 .list-group > * + * .list-row-content {
   border-top: 0.5px solid var(--separator);
 }
+
+/* Selects render as iOS "pop-up button" menus: no platform chrome, tint
+   label, up/down chevron. On iOS Safari tapping still opens the native
+   wheel picker. */
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2rem !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a8a8e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 14px;
+}

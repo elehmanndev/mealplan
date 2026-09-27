@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, MinusCircle } from 'lucide-react';
 import type { RecipeIngredientInput } from '@/schemas';
 import type { Ingredient, Unit } from '@/types';
 import { UNITS } from '@/types';
@@ -13,7 +13,8 @@ interface IngredientRepeaterProps {
   onChange: (next: RecipeIngredientInput[]) => void;
 }
 
-const inputCls = 'bg-surface-2 rounded-xl px-3 h-11 text-text placeholder:text-text-muted outline-none focus:ring-2 focus:ring-accent';
+const inputCls =
+  'bg-fill rounded-[10px] px-3 h-10 text-body text-text placeholder:text-text-muted outline-none caret-accent focus:ring-2 focus:ring-accent/40';
 
 export function IngredientRepeater({ value, onChange }: IngredientRepeaterProps) {
   const update = (i: number, patch: Partial<RecipeIngredientInput>) => {
@@ -48,9 +49,11 @@ export function IngredientRepeater({ value, onChange }: IngredientRepeaterProps)
       <button
         type="button"
         onClick={add}
-        className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-surface-2 text-text-muted hover:text-text active:scale-[0.99] transition-transform"
+        className="w-full flex items-center gap-3 h-11 pl-4 rounded-cell bg-surface text-body text-accent pressable"
       >
-        <Plus size={18} />
+        <span className="w-[22px] h-[22px] rounded-full bg-success text-white flex items-center justify-center">
+          <Plus size={15} strokeWidth={3} />
+        </span>
         Añadir ingrediente
       </button>
     </div>
@@ -144,7 +147,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
   const showCategorySelect = isCreatingNew;
 
   return (
-    <div className="bg-surface rounded-2xl p-3 space-y-2">
+    <div className="bg-surface rounded-cell p-3 space-y-2">
       <div className="relative">
         <input
           type="text"
@@ -156,7 +159,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           }}
           placeholder="Nombre del ingrediente"
           className={`${inputCls} w-full ${
-            isCreatingNew ? 'ring-1 ring-warning/50' : ''
+            isCreatingNew ? 'ring-1 ring-warning/60' : ''
           }`}
         />
         {isCreatingNew && (
@@ -171,7 +174,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           </p>
         )}
         {showSuggestions && suggestions.length > 0 && (
-          <ul className="absolute z-10 left-0 right-0 mt-1 bg-surface-2 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+          <ul className="glass list-group absolute z-10 left-0 right-0 mt-1 rounded-[14px] max-h-56 overflow-y-auto">
             {suggestions.map((ing) => (
               <li key={ing.id}>
                 <button
@@ -181,7 +184,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
                     if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
                     handlePickSuggestion(ing);
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-surface min-h-touch"
+                  className="w-full text-left px-3 py-2 pressable min-h-touch"
                 >
                   <span className="font-medium">{ing.name}</span>
                   <span className="text-xs text-text-muted ml-2">
@@ -220,9 +223,9 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           type="button"
           onClick={onRemove}
           aria-label="Eliminar ingrediente"
-          className="min-w-touch min-h-touch flex items-center justify-center rounded-full text-text-muted active:text-danger active:scale-95 transition-transform"
+          className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full text-danger active:opacity-50 transition-opacity"
         >
-          <Trash2 size={20} />
+          <MinusCircle size={22} className="fill-danger text-surface" />
         </button>
       </div>
       {showCategorySelect && (

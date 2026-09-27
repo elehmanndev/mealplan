@@ -80,3 +80,14 @@ describe('formatDate', () => {
     expect(formatDate(new Date(2025, 10, 17))).toBe('2025-11-17');
   });
 });
+
+describe('formatWeekRange', () => {
+  it('collapses the month when the week stays in one month', async () => {
+    const { formatWeekRange } = await import('@/lib/week');
+    expect(formatWeekRange('2026-10-03')).toBe('3 – 9 oct');
+  });
+  it('shows both months when the week spans two', async () => {
+    const { formatWeekRange } = await import('@/lib/week');
+    expect(formatWeekRange('2026-09-26')).toBe('26 sep – 2 oct');
+  });
+});
