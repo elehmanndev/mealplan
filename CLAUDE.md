@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # http://localhost:3000
 npm run build        # next build (output: 'standalone')
 npm run start        # run built server (uses .next/standalone)
-npm run lint         # next lint
+npm run lint         # next lint — NOT configured yet (no ESLint config; it prompts). Use typecheck.
 npm run typecheck    # tsc --noEmit
 npm run test         # vitest run (one shot)
 npm run test:watch   # vitest watch
@@ -120,6 +120,22 @@ SSE stream from `/api/chat/route.ts` to `@google/genai` (Gemini 2.5 Flash). The 
 ### Service worker
 
 Intentionally minimal (`/public/sw.js`): network-first for `/shopping*` and `/api/shopping*`, cache-first for `/_next/static`. No IndexedDB / Background Sync mutation queueing.
+
+### Design system (iOS-native)
+
+The UI deliberately mimics native iOS 26 / SwiftUI. Keep new screens consistent with it rather than reaching for generic Tailwind.
+
+- **Colors: semantic tokens only.** `bg` (systemGroupedBackground), `surface` (cells), `surface-2`, `text`, `text-muted`, `text-tertiary`, `accent` (systemBlue), `danger`, `success`, `warning`, `favorite`, plus `separator` / `fill` (CSS vars, no `/alpha`). Never hardcode `red-500`, `neutral-800`, hex values, etc. The purple brand gradient belongs only to the logo, `Wordmark`, and the login/welcome/join backdrops — buttons use `bg-accent`. Exception: supermarket brand colors in `src/lib/supermarkets.ts`.
+- **Tokens live in `src/app/globals.css`.** Light is the base; dark applies via `@media (prefers-color-scheme: dark)` on `html:not(.light)` **and** via `html.dark`. The dark values are duplicated in both blocks — change them together. `[data-sheet]` raises `surface`/`surface-2` one elevation inside sheets.
+- **Appearance**: `system` (default, follows the OS) / `light` / `dark`, stored in `localStorage.theme` and applied by `src/lib/theme.ts`; the inline script in `layout.tsx` sets the class before paint.
+- **Type: Apple's Dynamic Type scale** — `text-large-title`, `title1..3`, `headline`, `body`, `callout`, `subhead`, `footnote`, `caption1/2`. Don't use `text-sm` / `text-[13px]`. Radii: `rounded-cell` (grouped sections), `rounded-sheet`, `rounded-full` for buttons/capsules.
+- **Use the primitives in `src/components/ui/`:**
+  - `NavBar` (+ `NavBarButton`, `SearchField`, `Chip`) for every screen header. `large` gives the collapsing large title; `back={{ href, label }}` gives the chevron back button; `revealTitleOnScrollPast` hides the inline title until a hero heading scrolls away.
+  - `ListSection` / `ListRow` for any list, menu or settings group (Settings-style icon tiles via `icon` + `iconBg`, `value`, `accessory`, `destructive`). Raw rows inside a `ListSection` need `list-row` + `list-row-content` classes to get inset separators.
+  - `BottomSheet` for sheets, `ConfirmActions` for destructive/confirm steps (action-sheet style), `Button` (`primary` = filled, `secondary` = tinted fill, `ghost`, `danger`).
+  - Controls: `SegmentedControl`, `Stepper`, `Switch`, `SwipeToDelete`. Native `<select>` is globally styled as an iOS pop-up button — keep using it (iOS opens the wheel picker).
+- **Layout**: pages with the floating `BottomNav` need `pb-28` so content clears the tab bar. Floating actions sit above it (see `RecipeDetailClient`).
+- **Supermarket per ingredient is load-bearing.** It drives the per-supermarket grouping of the shopping list. Every surface that edits ingredients or extras must keep a supermarket picker: `IngredientRepeater` (recipe form), `RecipeDraftCard` (chat), `AddExtraSheet` (shopping, preset from the section it was opened from).
 
 ## Conventions worth knowing
 
