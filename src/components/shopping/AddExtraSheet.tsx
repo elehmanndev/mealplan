@@ -75,84 +75,85 @@ export function AddExtraSheet({ open, onClose, week, defaultSupermarket }: AddEx
     onClose();
   }
 
-  const inputClass = 'w-full bg-surface-2 rounded-xl px-4 h-12 text-base outline-none focus:ring-2 focus:ring-accent';
+  const fieldCls =
+    'w-full bg-transparent text-body text-text placeholder:text-text-muted outline-none caret-accent';
+  // Trailing pop-up menu inside a grouped row (SwiftUI Picker in a Form).
+  const menuCls = 'bg-transparent text-body text-text-muted text-right outline-none max-w-[60%]';
 
   return (
     <BottomSheet open={open} onClose={handleClose} title="Añadir item">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 pt-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-text-muted">Nombre</span>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-            placeholder="Papel higiénico"
-            className={inputClass}
-          />
-        </label>
+      <form onSubmit={handleSubmit} className="space-y-5 pt-1">
+        <div className="list-group rounded-cell bg-surface overflow-hidden">
+          <div className="list-row pl-4">
+            <div className="list-row-content py-[11px] pr-4">
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+                placeholder="Nombre (p. ej. Papel higiénico)"
+                aria-label="Nombre"
+                className={fieldCls}
+              />
+            </div>
+          </div>
+          <div className="list-row pl-4">
+            <div className="list-row-content flex items-center gap-3 py-[11px] pr-4">
+              <span className="flex-1 text-body">Cantidad</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="1"
+                aria-label="Cantidad"
+                className="w-16 bg-transparent text-right text-body text-text-muted placeholder:text-text-tertiary outline-none caret-accent"
+              />
+              <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label="Unidad" className={menuCls}>
+                <option value="">—</option>
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-text-muted">Cantidad</span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="1"
-              className={inputClass}
-            />
+        <div className="list-group rounded-cell bg-surface overflow-hidden">
+          <label className="list-row pl-4 flex">
+            <span className="list-row-content flex-1 flex items-center gap-3 py-[11px] pr-4">
+              <span className="flex-1 text-body">Supermercado</span>
+              <select
+                value={supermarket}
+                onChange={(e) => setSupermarket(e.target.value)}
+                className={menuCls}
+              >
+                <option value="">Sin asignar</option>
+                {SUPERMARKETS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </span>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm text-text-muted">Unidad</span>
-            <select
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">—</option>
-              {UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
+          <label className="list-row pl-4 flex">
+            <span className="list-row-content flex-1 flex items-center gap-3 py-[11px] pr-4">
+              <span className="flex-1 text-body">Categoría</span>
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className={menuCls}>
+                {SHOPPING_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </span>
           </label>
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-text-muted">Categoría</span>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className={inputClass}
-          >
-            {SHOPPING_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-text-muted">Supermercado</span>
-          <select
-            value={supermarket}
-            onChange={(e) => setSupermarket(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">Sin asignar</option>
-            {SUPERMARKETS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {error && <p className="text-danger text-sm">{error}</p>}
+        {error && <p className="px-4 text-danger text-footnote">{error}</p>}
 
         <Button type="submit" variant="primary" size="lg" fullWidth disabled={pending}>
           {pending ? 'Añadiendo…' : 'Añadir'}

@@ -18,11 +18,10 @@ export default async function ShoppingPage({ searchParams }: ShoppingPageProps) 
   const groups = generateShoppingList(householdId, week);
 
   return (
-    <main className="min-h-dvh pb-24">
-      <h1 className="sr-only">Lista de la compra</h1>
+    <main className="min-h-dvh pb-28">
       <ShoppingHeader week={week} />
 
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-3">
         <ShoppingList groups={groups} week={week} />
       </div>
 

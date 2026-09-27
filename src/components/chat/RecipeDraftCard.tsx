@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, Minus, Plus, Users, Clock, X } from 'lucide-react';
+import { Check, Clock, Minus, MinusCircle, Plus, Users } from 'lucide-react';
 import { UNITS, type Unit } from '@/types';
 import { SUPERMARKETS } from '@/lib/supermarkets';
 
@@ -111,14 +111,14 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
   const pantry = ingredients.filter((ing) => ing.is_pantry);
 
   return (
-    <div className="rounded-3xl bg-surface/90 backdrop-blur-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05),0_12px_32px_-8px_rgba(0,0,0,0.18)]">
+    <div className="rounded-cell bg-surface overflow-hidden shadow-soft">
       <header className="px-5 pt-4 pb-3 flex items-center gap-3.5">
         <span className="text-3xl leading-none shrink-0">{draft.emoji ?? '🍽️'}</span>
         <div className="flex-1 min-w-0">
-          <h3 className="text-[15px] font-semibold text-text leading-tight tracking-tight line-clamp-2 break-words">
+          <h3 className="text-headline text-text line-clamp-2 break-words">
             {draft.name}
           </h3>
-          <div className="text-[11px] text-text-muted/80 mt-1 flex items-center gap-2.5 tracking-tight">
+          <div className="text-footnote text-text-muted mt-0.5 flex items-center gap-2.5">
             <span className="inline-flex items-center gap-1">
               <Users size={11} strokeWidth={2.25} />
               {draft.servings}
@@ -134,41 +134,42 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
         </div>
       </header>
 
-      <ul className="px-3 flex flex-col gap-1">
+      <ul className="list-group border-t-[0.5px] border-separator">
         {nonPantry.map(({ ing, i }) => {
           const sm = SUPERMARKETS.find((s) => s.id === ing.supermarket);
           return (
             <li
               key={i}
-              className="rounded-2xl px-3 py-2.5 bg-bg/60"
+              className="list-row pl-4"
             >
+              <div className="list-row-content py-2.5 pr-3">
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-[13px] text-text font-medium truncate flex-1 tracking-tight">
+                <span className="text-body text-text truncate flex-1">
                   {ing.name}
                 </span>
                 <button
                   type="button"
                   onClick={() => removeIngredient(i)}
                   aria-label={`Quitar ${ing.name}`}
-                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/40 active:text-danger active:scale-90 transition-all flex items-center justify-center"
+                  className="shrink-0 w-7 h-7 -mr-1 flex items-center justify-center active:opacity-50"
                 >
-                  <X size={11} strokeWidth={2.5} />
+                  <MinusCircle size={20} className="fill-danger text-surface" />
                 </button>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-px">
                 <button
                   type="button"
                   onClick={() => bumpQuantity(i, -1)}
                   aria-label="Bajar"
-                  className="w-6 h-6 rounded-full bg-surface-2 text-text active:scale-90 transition-all flex items-center justify-center shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
+                  className="w-8 h-7 rounded-l-[8px] bg-fill text-text active:bg-[var(--fill-pressed)] flex items-center justify-center"
                 >
-                  <Minus size={10} strokeWidth={2.5} />
+                  <Minus size={14} strokeWidth={2.5} />
                 </button>
-                <div className="flex items-baseline justify-center gap-1 min-w-[64px]">
-                  <span className="text-[13px] text-text font-medium tabular-nums">
+                <div className="flex items-baseline justify-center gap-1 min-w-[70px] h-7 bg-fill">
+                  <span className="text-subhead text-text font-medium tabular-nums leading-7">
                     {formatQty(ing.quantity)}
                   </span>
-                  <span className="relative inline-flex text-text-muted/70 text-[11px] hover:text-text transition-colors">
+                  <span className="relative inline-flex text-text-muted text-footnote leading-7">
                     <span aria-hidden="true">
                       {ing.unit === 'al_gusto' ? 'al gusto' : ing.unit}
                     </span>
@@ -191,19 +192,19 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
                   type="button"
                   onClick={() => bumpQuantity(i, 1)}
                   aria-label="Subir"
-                  className="w-6 h-6 rounded-full bg-surface-2 text-text active:scale-90 transition-all flex items-center justify-center shadow-[0_1px_2px_rgba(0,0,0,0.18)]"
+                  className="w-8 h-7 rounded-r-[8px] bg-fill text-text active:bg-[var(--fill-pressed)] flex items-center justify-center"
                 >
-                  <Plus size={10} strokeWidth={2.5} />
+                  <Plus size={14} strokeWidth={2.5} />
                 </button>
                 <span
                   className={[
-                    'relative ml-2 inline-flex items-center justify-center min-w-[60px] h-7 px-2.5 rounded-full text-[11px] font-semibold tracking-tight transition-colors',
+                    'relative ml-auto inline-flex items-center justify-center min-w-[72px] h-7 px-3 rounded-full text-footnote font-semibold transition-colors',
                     sm
-                      ? `${sm.pillClass} shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]`
-                      : 'bg-surface-2/60 text-text-muted/60',
+                      ? sm.pillClass
+                      : 'bg-fill text-accent',
                   ].join(' ')}
                 >
-                  <span aria-hidden="true">{sm?.label ?? '—'}</span>
+                  <span aria-hidden="true">{sm?.label ?? 'Supermercado'}</span>
                   <select
                     value={ing.supermarket ?? ''}
                     onChange={(e) =>
@@ -222,6 +223,7 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
                   </select>
                 </span>
               </div>
+              </div>
             </li>
           );
         })}
@@ -232,7 +234,7 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
           {pantry.map((p, idx) => (
             <span
               key={idx}
-              className="text-[10px] text-text-muted/70 px-2 py-0.5 rounded-full bg-bg/60 tracking-tight"
+              className="text-caption1 text-text-muted px-2.5 py-1 rounded-full bg-fill"
             >
               {p.name}
             </span>
@@ -240,23 +242,22 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
         </div>
       )}
 
-      <footer className="px-3 pt-3 pb-3 flex gap-2 mt-2">
+      <footer className="px-3 pt-3 pb-3 flex gap-2 mt-1 border-t-[0.5px] border-separator">
         <button
           type="button"
           onClick={onDiscard}
           disabled={saving}
-          className="flex-1 h-11 rounded-2xl bg-surface text-text-muted text-[13px] font-semibold tracking-tight flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-40 hover:text-text"
+          className="flex-1 h-11 rounded-full bg-fill text-danger text-subhead font-semibold flex items-center justify-center gap-1.5 active:bg-[var(--fill-pressed)] transition-colors disabled:opacity-40"
         >
-          <X size={14} strokeWidth={2.75} />
           Descartar
         </button>
         <button
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="flex-1 h-11 rounded-2xl bg-white/[0.08] text-text text-[13px] font-semibold tracking-tight flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all disabled:opacity-60 hover:bg-white/[0.12]"
+          className="flex-1 h-11 rounded-full bg-accent text-white text-subhead font-semibold flex items-center justify-center gap-1.5 active:opacity-80 transition-opacity disabled:opacity-60"
         >
-          <Check size={14} strokeWidth={2.75} />
+          <Check size={16} strokeWidth={2.75} />
           {saving ? 'Guardando…' : 'Guardar'}
         </button>
       </footer>

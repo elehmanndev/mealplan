@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mic, RotateCcw, Send, Sparkles } from 'lucide-react';
+import { ArrowUp, Mic, Sparkles, SquarePen } from 'lucide-react';
+import { NavBar } from '@/components/ui/NavBar';
 import { Streamdown } from 'streamdown';
 import { useToast } from '@/components/ui/Toast';
 import { RecipeDraftCard, type RecipeDraft } from '@/components/chat/RecipeDraftCard';
@@ -447,27 +448,29 @@ export function ChatPanel() {
   const hasHistory = messages.length > 1;
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-3">
-      {hasHistory && (
-        <div className="mx-auto w-full max-w-3xl flex justify-end -mb-2">
-          <button
-            type="button"
-            onClick={resetChat}
-            disabled={busy}
-            aria-label="Nueva conversación"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface text-text-muted text-[11px] font-medium tracking-tight active:scale-95 transition-all disabled:opacity-40 hover:text-text"
-          >
-            <RotateCcw size={12} strokeWidth={2.5} />
-            Nueva conversación
-          </button>
-        </div>
-      )}
+    <div className="flex-1 min-h-0 flex flex-col gap-2">
+      <NavBar
+        title="Chat"
+        trailing={
+          hasHistory ? (
+            <button
+              type="button"
+              onClick={resetChat}
+              disabled={busy}
+              aria-label="Nueva conversación"
+              className="w-11 h-11 flex items-center justify-center text-accent active:opacity-50 disabled:opacity-40"
+            >
+              <SquarePen size={22} strokeWidth={2} />
+            </button>
+          ) : undefined
+        }
+      />
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto no-scrollbar"
+        className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4"
       >
-        <div className="mx-auto max-w-3xl flex flex-col gap-5 pb-2">
+        <div className="mx-auto max-w-3xl flex flex-col gap-3 pt-3 pb-2">
           {messages.map((m, i) => (
             <Message
               key={i}
@@ -481,8 +484,19 @@ export function ChatPanel() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl flex flex-col gap-1">
+      <div className="mx-auto w-full max-w-3xl flex flex-col gap-1 px-3">
         <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={handleMic}
+            disabled={busy}
+            aria-label="Dictar con el micrófono del teclado"
+            className="shrink-0 w-9 h-9 mb-0.5 rounded-full bg-fill text-text-muted flex items-center justify-center disabled:opacity-40 active:opacity-60"
+          >
+            <Mic size={18} />
+          </button>
+          {/* iMessage composer: capsule field with the send arrow inside it. */}
+          <div className="relative flex-1 flex items-end rounded-[20px] bg-surface ring-[0.5px] ring-separator">
           <textarea
             ref={inputRef}
             value={text}
@@ -491,26 +505,18 @@ export function ChatPanel() {
             placeholder="Describe una receta…"
             rows={1}
             disabled={busy}
-            className="flex-1 bg-surface rounded-2xl px-4 py-3 text-sm text-text placeholder:text-text-muted/60 outline-none focus:ring-2 focus:ring-accent/50 resize-none max-h-[calc(5lh+1.5rem)] disabled:opacity-60 no-scrollbar"
-          />
-          <button
-            type="button"
-            onClick={handleMic}
-            disabled={busy}
-            aria-label="Dictar con el micrófono del teclado"
-            className="shrink-0 w-12 h-12 rounded-full bg-surface text-text-muted flex items-center justify-center disabled:opacity-40 active:scale-95 transition-transform"
-          >
-            <Mic size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={send}
-            disabled={busy || !text.trim()}
-            aria-label="Enviar"
-            className="shrink-0 w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center disabled:opacity-40 disabled:bg-surface disabled:text-text-muted active:scale-95 transition-transform"
-          >
-            <Send size={18} />
-          </button>
+            className="flex-1 bg-transparent pl-4 pr-11 py-[9px] text-body text-text placeholder:text-text-muted outline-none caret-accent resize-none max-h-[calc(5lh+1.2rem)] disabled:opacity-60 no-scrollbar"
+            />
+            <button
+              type="button"
+              onClick={send}
+              disabled={busy || !text.trim()}
+              aria-label="Enviar"
+              className="absolute right-1 bottom-1 w-[30px] h-[30px] rounded-full bg-accent text-white flex items-center justify-center disabled:opacity-0 transition-opacity active:opacity-70"
+            >
+              <ArrowUp size={18} strokeWidth={3} />
+            </button>
+          </div>
         </div>
         <ChatUsageBar liveUsed={usedToday} liveCap={capToday} compact />
 
@@ -535,7 +541,7 @@ function Message({
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm bg-accent text-white whitespace-pre-wrap">
+        <div className="max-w-[78%] rounded-[20px] rounded-br-[6px] px-3.5 py-2 text-body bg-accent text-white whitespace-pre-wrap">
           {message.content}
         </div>
       </div>
@@ -547,14 +553,14 @@ function Message({
     !message.content && (message.skippedRecipes?.length ?? 0) === 0 && !showDraft;
 
   return (
-    <div className="text-text text-[15px] leading-relaxed">
+    <div className="text-text text-body">
       {empty && streaming && !message.isContinuation ? (
         <ThinkingDots />
       ) : (
         <>
           {message.content && (
             <div className="flex justify-start">
-              <div className="max-w-[85%] bg-surface rounded-2xl rounded-bl-md px-4 py-3">
+              <div className="max-w-[78%] bg-surface-2 rounded-[20px] rounded-bl-[6px] px-3.5 py-2">
                 <Streamdown
                   controls={false}
                   isAnimating={streaming}

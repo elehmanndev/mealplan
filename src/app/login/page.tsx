@@ -78,8 +78,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <form className="w-full" action={signInWithGoogle}>
           <button
             type="submit"
-            className="group w-full inline-flex items-center justify-center gap-3 h-12 rounded-2xl bg-white text-slate-900 font-medium text-[15px] ring-1 ring-black/5 active:scale-[0.985] transition-transform"
-            style={{ boxShadow: '0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 4px 12px -4px rgba(124, 58, 237, 0.35)' }}
+            className="group w-full inline-flex items-center justify-center gap-3 h-[50px] rounded-full bg-white text-black font-semibold text-body ring-[0.5px] ring-black/10 active:opacity-80 transition-opacity"
+            style={{ boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)' }}
           >
             <GoogleGlyph />
             <span>Continuar con Google</span>

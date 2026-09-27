@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Check, Copy, Download, Upload } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
+import { ListRow } from '@/components/ui/List';
 import { useToast } from '@/components/ui/Toast';
 import { sanitizeJsonText } from '@/lib/sanitize-json';
 
@@ -160,42 +161,32 @@ export function DataActions() {
 
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={handleExport}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-        >
-          <Download size={20} className="text-text-muted shrink-0" />
-          <div className="flex-1">
-            <div className="font-medium">Exportar copia</div>
-            <div className="text-xs text-text-muted">Descarga un JSON con tus recetas y plan</div>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={openImport}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform"
-        >
-          <Upload size={20} className="text-text-muted shrink-0" />
-          <div className="flex-1">
-            <div className="font-medium">Importar recetas</div>
-            <div className="text-xs text-text-muted">Pega un JSON (p. ej. de ChatGPT)</div>
-          </div>
-        </button>
-      </div>
+      <ListRow
+        icon={Download}
+        title="Exportar copia"
+        subtitle="Descarga un JSON con tus recetas y plan"
+        onClick={handleExport}
+      />
+      <ListRow
+        icon={Upload}
+        iconBg="rgb(var(--success))"
+        title="Importar recetas"
+        subtitle="Pega un JSON (p. ej. de ChatGPT)"
+        onClick={openImport}
+        chevron
+      />
 
       <BottomSheet open={open} onClose={close} title="Importar recetas" fullHeight>
         <div className="space-y-5">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent/15 text-accent text-xs font-bold">1</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-caption1 font-bold">1</span>
               <span className="text-sm font-medium text-text">Pídele a ChatGPT que convierta tus recetas</span>
             </div>
             <button
               type="button"
               onClick={copyPrompt}
-              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-accent/15 text-accent text-sm font-medium active:scale-[0.99] transition-transform"
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-full bg-fill text-accent text-subhead font-semibold active:bg-[var(--fill-pressed)] transition-colors"
             >
               {copied ? <Check size={16} /> : <Copy size={16} />}
               {copied ? '¡Copiado! Pégalo en ChatGPT' : 'Copiar prompt para ChatGPT'}
@@ -204,7 +195,7 @@ export function DataActions() {
 
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent/15 text-accent text-xs font-bold">2</span>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent text-white text-caption1 font-bold">2</span>
               <span className="text-sm font-medium text-text">Pega aquí el JSON que te devuelva</span>
             </div>
             <textarea
@@ -215,7 +206,7 @@ export function DataActions() {
               autoCapitalize="off"
               autoCorrect="off"
               autoComplete="off"
-              className="w-full h-48 bg-surface rounded-xl px-3 py-2 text-sm font-mono text-text placeholder:text-text-muted/40 outline-none focus:ring-2 focus:ring-accent/50"
+              className="w-full h-48 bg-surface rounded-cell px-4 py-3 text-footnote font-mono text-text placeholder:text-text-tertiary outline-none caret-accent focus:ring-2 focus:ring-accent/40"
             />
             <p className="text-xs text-text-muted px-1">
               Las recetas que ya existen (mismo nombre) se omiten. Los ingredientes se reutilizan por nombre.
@@ -249,7 +240,7 @@ export function DataActions() {
                 lidl, dia, alcampo, consum, eroski, aldi, bonpreu, esclat, condis, spar, caprabo,
                 la-sirena, bon-area
               </div>
-              <pre className="mt-2 p-3 bg-surface rounded-lg overflow-x-auto text-[11px] leading-relaxed text-text">
+              <pre className="mt-2 p-3 bg-surface rounded-[14px] overflow-x-auto text-[11px] leading-relaxed text-text">
 {EXAMPLE_JSON}
               </pre>
             </div>

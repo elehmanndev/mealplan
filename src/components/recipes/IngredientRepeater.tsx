@@ -243,12 +243,13 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           ))}
         </select>
       )}
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-text-muted shrink-0">Supermercado</label>
+      {/* Where it gets bought — this drives the per-supermarket shopping list. */}
+      <label className="flex items-center gap-2 h-10 pl-3 pr-1 rounded-[10px] bg-fill">
+        <span className="text-subhead text-text-muted shrink-0">Supermercado</span>
         <select
           value={row.supermarket ?? ''}
           onChange={(e) => onPatch({ supermarket: e.target.value || null })}
-          className={`${inputCls} flex-1`}
+          className="flex-1 min-w-0 h-10 bg-transparent text-right text-body text-text outline-none"
         >
           <option value="">Sin asignar</option>
           {SUPERMARKETS.map((sm) => (
@@ -258,7 +259,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           ))}
         </select>
         {row.supermarket && <SupermarketPill id={row.supermarket} />}
-      </div>
+      </label>
     </div>
   );
 }
