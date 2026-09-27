@@ -152,7 +152,7 @@ export function AddExtraSheet({ open, onClose, week, defaultSupermarket }: AddEx
           </select>
         </label>
 
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-danger text-sm">{error}</p>}
 
         <Button type="submit" variant="primary" size="lg" fullWidth disabled={pending}>
           {pending ? 'Añadiendo…' : 'Añadir'}

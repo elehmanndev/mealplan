@@ -95,7 +95,7 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
         onClick={handleRemove}
         disabled={pending}
         aria-label={`Quitar ${item.name} de la lista`}
-        className="shrink-0 min-h-touch min-w-touch flex items-center justify-center text-text-muted/60 hover:text-red-400 transition-colors"
+        className="shrink-0 min-h-touch min-w-touch flex items-center justify-center text-text-tertiary active:text-danger transition-colors"
       >
         <X size={18} />
       </button>

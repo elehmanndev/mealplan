@@ -225,8 +225,8 @@ export function ContextMenu({ entry, open, onClose, week }: ContextMenuProps) {
               disabled={isPending}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
             >
-              <Trash2 size={20} className="text-red-400 shrink-0" />
-              <span className="font-medium text-red-400">Eliminar del plan</span>
+              <Trash2 size={20} className="text-danger shrink-0" />
+              <span className="font-medium text-danger">Eliminar del plan</span>
             </button>
           </li>
         </ul>

@@ -156,11 +156,11 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           }}
           placeholder="Nombre del ingrediente"
           className={`${inputCls} w-full ${
-            isCreatingNew ? 'ring-1 ring-amber-500/50' : ''
+            isCreatingNew ? 'ring-1 ring-warning/50' : ''
           }`}
         />
         {isCreatingNew && (
-          <p className="mt-1 text-xs text-amber-400">
+          <p className="mt-1 text-xs text-warning">
             🆕 Se creará como ingrediente nuevo. Si existe en la lista de
             sugerencias, selecciónalo para reusarlo.
           </p>
@@ -220,7 +220,7 @@ function IngredientRow({ row, onPatch, onRemove }: IngredientRowProps) {
           type="button"
           onClick={onRemove}
           aria-label="Eliminar ingrediente"
-          className="min-w-touch min-h-touch flex items-center justify-center rounded-full text-text-muted hover:text-red-400 active:scale-95 transition-transform"
+          className="min-w-touch min-h-touch flex items-center justify-center rounded-full text-text-muted active:text-danger active:scale-95 transition-transform"
         >
           <Trash2 size={20} />
         </button>

@@ -43,36 +43,32 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         className="fixed left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none"
-        style={{ bottom: `calc(env(safe-area-inset-bottom) + ${onChat ? 180 : 96}px)` }}
+        style={{ bottom: `calc(env(safe-area-inset-bottom) + ${onChat ? 180 : 100}px)` }}
         aria-live="polite"
         aria-atomic="true"
       >
         {toasts.map((t) => {
           const Icon =
             t.kind === 'success' ? CheckCircle2 : t.kind === 'error' ? AlertCircle : Info;
+          // iOS-style HUD: glass capsule, tinted glyph carries the tone.
           const tone =
-            t.kind === 'success'
-              ? 'bg-accent text-white'
-              : t.kind === 'error'
-                ? 'bg-red-600 text-white'
-                : 'bg-surface text-text';
+            t.kind === 'success' ? 'text-success' : t.kind === 'error' ? 'text-danger' : 'text-accent';
           return (
             <div
               key={t.id}
               role="status"
               className={[
-                'pointer-events-auto max-w-[88vw] flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg',
+                'glass pointer-events-auto max-w-[88vw] flex items-center gap-2.5 pl-4 pr-2 py-2.5 rounded-full text-text',
                 'animate-toast-in',
-                tone,
               ].join(' ')}
             >
-              <Icon size={18} className="shrink-0" />
-              <span className="text-sm font-medium whitespace-nowrap truncate">{t.message}</span>
+              <Icon size={20} strokeWidth={2.25} className={['shrink-0', tone].join(' ')} />
+              <span className="text-subhead font-semibold whitespace-nowrap truncate">{t.message}</span>
               <button
                 type="button"
                 onClick={() => dismiss(t.id)}
                 aria-label="Cerrar aviso"
-                className="ml-1 -mr-1 p-1 rounded-full opacity-70 hover:opacity-100"
+                className="ml-1 p-1 rounded-full text-text-muted active:opacity-50"
               >
                 <X size={16} />
               </button>
@@ -83,16 +79,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <style jsx global>{`
         @keyframes toast-in {
           from {
-            transform: translateY(20px);
+            transform: translateY(16px) scale(0.92);
             opacity: 0;
           }
           to {
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
             opacity: 1;
           }
         }
         .animate-toast-in {
-          animation: toast-in 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+          animation: toast-in 0.36s cubic-bezier(0.34, 1.4, 0.64, 1);
         }
         @media (prefers-reduced-motion: reduce) {
           .animate-toast-in {
