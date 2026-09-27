@@ -66,9 +66,9 @@ export function ChatUsageBar({
   const warn = !exhausted && remaining <= Math.max(2, Math.ceil(cap * 0.2));
 
   const barColor = exhausted
-    ? 'bg-red-500'
+    ? 'bg-danger'
     : warn
-      ? 'bg-amber-400'
+      ? 'bg-warning'
       : 'bg-accent';
 
   return (
@@ -79,7 +79,7 @@ export function ChatUsageBar({
         </span>
         <span
           className={`${compact ? 'text-[11px]' : 'text-xs font-medium'} ${
-            exhausted ? 'text-red-400' : warn ? 'text-amber-400' : 'text-text-muted'
+            exhausted ? 'text-danger' : warn ? 'text-warning' : 'text-text-muted'
           }`}
         >
           {used} / {cap}

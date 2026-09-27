@@ -40,7 +40,7 @@ export function PlanSlot({ date, slot, entries, isToday, onTapEmpty, onTapEntry 
           className={[
             'h-full w-full rounded-xl border border-dashed flex items-center justify-center',
             'text-text-muted active:scale-[0.98] transition-transform',
-            isToday ? 'border-accent/40 bg-accent/5' : 'border-neutral-800 bg-surface/40',
+            isToday ? 'border-accent/40 bg-accent/5' : 'border-separator bg-surface/60',
           ].join(' ')}
         >
           <Plus size={20} />
@@ -69,7 +69,7 @@ export function PlanSlot({ date, slot, entries, isToday, onTapEmpty, onTapEntry 
           className={[
             'w-9 shrink-0 rounded-xl border border-dashed flex items-center justify-center',
             'text-text-muted active:scale-[0.98] transition-transform',
-            isToday ? 'border-accent/40 bg-accent/5' : 'border-neutral-800 bg-surface/40',
+            isToday ? 'border-accent/40 bg-accent/5' : 'border-separator bg-surface/60',
           ].join(' ')}
         >
           <Plus size={16} />

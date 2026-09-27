@@ -132,8 +132,8 @@ export function WeekActionsMenu({ week, open, onClose, hasEntries }: WeekActions
               disabled={isPending || !hasEntries}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface min-h-touch text-left active:scale-[0.99] transition-transform disabled:opacity-50"
             >
-              <Trash2 size={20} className="text-red-400 shrink-0" />
-              <span className="font-medium text-red-400">Limpiar semana</span>
+              <Trash2 size={20} className="text-danger shrink-0" />
+              <span className="font-medium text-danger">Limpiar semana</span>
             </button>
           </li>
         </ul>

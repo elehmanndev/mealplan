@@ -100,7 +100,7 @@ export default async function RecipesPage({ searchParams }: RecipesPageProps) {
       <Link
         href="/recipes/new"
         aria-label="Nueva receta"
-        className="fixed right-4 bottom-24 z-30 w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+        className="fixed right-4 bottom-28 z-30 w-14 h-14 rounded-full bg-accent text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
       >
         <Plus size={28} />
       </Link>

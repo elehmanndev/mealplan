@@ -12,35 +12,38 @@ interface StepperProps {
   size?: 'md' | 'lg';
 }
 
+/**
+ * UIStepper-style control: a single grey capsule split by a hairline, with
+ * the current value shown beside it (the way Settings/Health pair them).
+ */
 export function Stepper({ value, onChange, min = 1, max = 20, step = 1, label, size = 'md' }: StepperProps) {
-  const dim = size === 'lg' ? 'w-14 h-14 text-2xl' : 'w-12 h-12 text-xl';
+  const lg = size === 'lg';
   const dec = () => onChange(Math.max(min, value - step));
   const inc = () => onChange(Math.min(max, value + step));
+  const segment = [
+    lg ? 'w-14 h-11' : 'w-12 h-9',
+    'flex items-center justify-center text-text disabled:text-text-tertiary active:bg-[var(--fill-pressed)] transition-colors',
+  ].join(' ');
 
   return (
     <div className="flex items-center gap-3">
-      {label && <span className="text-sm text-text-muted">{label}</span>}
-      <div className="flex items-center gap-2 bg-surface-2 rounded-full p-1">
-        <button
-          type="button"
-          aria-label="Disminuir"
-          onClick={dec}
-          disabled={value <= min}
-          className={`${dim} rounded-full bg-surface flex items-center justify-center disabled:opacity-30 active:scale-95 transition-transform`}
-        >
-          <Minus size={20} />
+      {label && <span className="text-subhead text-text-muted">{label}</span>}
+      <span
+        className={[
+          'text-center font-semibold tabular-nums',
+          lg ? 'min-w-12 text-title2' : 'min-w-8 text-headline',
+        ].join(' ')}
+        aria-live="polite"
+      >
+        {value}
+      </span>
+      <div className="flex items-center rounded-[9px] bg-fill overflow-hidden">
+        <button type="button" aria-label="Disminuir" onClick={dec} disabled={value <= min} className={segment}>
+          <Minus size={lg ? 20 : 18} strokeWidth={2.5} />
         </button>
-        <span className={`${size === 'lg' ? 'min-w-12' : 'min-w-10'} text-center font-semibold tabular-nums`}>
-          {value}
-        </span>
-        <button
-          type="button"
-          aria-label="Aumentar"
-          onClick={inc}
-          disabled={value >= max}
-          className={`${dim} rounded-full bg-accent text-white flex items-center justify-center disabled:opacity-30 active:scale-95 transition-transform`}
-        >
-          <Plus size={20} />
+        <span aria-hidden className="w-px h-5 bg-separator" />
+        <button type="button" aria-label="Aumentar" onClick={inc} disabled={value >= max} className={segment}>
+          <Plus size={lg ? 20 : 18} strokeWidth={2.5} />
         </button>
       </div>
     </div>

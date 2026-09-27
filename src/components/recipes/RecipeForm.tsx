@@ -90,7 +90,7 @@ export function RecipeForm({ mode, recipeId, initial }: RecipeFormProps) {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="px-4 py-3 bg-red-600/20 border border-red-600 text-red-300 rounded-xl">
+        <div className="px-4 py-3 bg-danger/10 text-danger rounded-cell text-subhead">
           {error}
         </div>
       )}

@@ -139,7 +139,7 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
               'shrink-0 inline-flex items-center gap-1 px-3 h-9 rounded-full text-sm font-medium border',
               favOnly
                 ? 'bg-accent text-white border-accent'
-                : 'bg-surface-2 border-neutral-700 text-text',
+                : 'bg-surface-2 border-separator text-text',
             ].join(' ')}
           >
             <Star size={14} />
@@ -156,7 +156,7 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
                   'shrink-0 px-3 h-9 rounded-full text-sm font-medium border',
                   active
                     ? 'bg-accent text-white border-accent'
-                    : 'bg-surface-2 border-neutral-700 text-text',
+                    : 'bg-surface-2 border-separator text-text',
                 ].join(' ')}
               >
                 {tag}
@@ -187,7 +187,7 @@ export function RecipePicker({ open, onClose, date, slot }: RecipePickerProps) {
                   {r.is_favorite && (
                     <Star
                       size={14}
-                      className="absolute top-2 right-2 text-yellow-400 fill-yellow-400"
+                      className="absolute top-2 right-2 text-favorite fill-favorite"
                     />
                   )}
                   <span className="text-5xl mb-2" aria-hidden>

@@ -150,7 +150,7 @@ export function RecipeDraftCard({ draft, onSave, onDiscard, onChange, saving, sa
                   type="button"
                   onClick={() => removeIngredient(i)}
                   aria-label={`Quitar ${ing.name}`}
-                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/40 hover:text-red-400 active:scale-90 transition-all flex items-center justify-center"
+                  className="shrink-0 w-5 h-5 rounded-full text-text-muted/40 active:text-danger active:scale-90 transition-all flex items-center justify-center"
                 >
                   <X size={11} strokeWidth={2.5} />
                 </button>

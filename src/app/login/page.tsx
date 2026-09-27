@@ -67,7 +67,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         {/* Error banner */}
         {error && (
-          <div className="w-full rounded-2xl bg-red-500/10 ring-1 ring-red-500/25 px-4 py-3 text-[13px] text-red-300 text-center leading-relaxed">
+          <div className="w-full rounded-2xl bg-danger/10 px-4 py-3 text-footnote text-danger text-center leading-relaxed">
             {errorMessage(error)}
           </div>
         )}

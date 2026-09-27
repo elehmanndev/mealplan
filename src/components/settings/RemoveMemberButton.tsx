@@ -45,7 +45,7 @@ export function RemoveMemberButton({ userId, memberLabel }: RemoveMemberButtonPr
         type="button"
         onClick={arm}
         aria-label={`Quitar a ${memberLabel}`}
-        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full text-text-muted hover:text-red-400 transition-colors"
+        className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full text-text-muted active:text-danger transition-colors"
       >
         <Trash2 size={16} />
       </button>
@@ -66,7 +66,7 @@ export function RemoveMemberButton({ userId, memberLabel }: RemoveMemberButtonPr
         type="button"
         onClick={execute}
         disabled={pending}
-        className="text-xs font-medium text-white bg-red-500 px-3 h-9 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+        className="text-xs font-medium text-white bg-danger px-3 h-9 rounded-full active:scale-95 transition-transform disabled:opacity-50"
       >
         {pending ? 'Quitando…' : 'Quitar'}
       </button>

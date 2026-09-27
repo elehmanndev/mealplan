@@ -12,17 +12,20 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
+// iOS button styles: primary = .borderedProminent (filled tint),
+// secondary = .bordered (tinted grey fill + tint label), ghost = .plain,
+// danger = destructive prominent.
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-blue-600 active:bg-blue-700',
-  secondary: 'bg-surface-2 text-text hover:bg-neutral-700',
-  ghost: 'bg-transparent text-text hover:bg-surface-2',
-  danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
+  primary: 'bg-accent text-white active:opacity-80',
+  secondary: 'bg-fill text-accent active:bg-[var(--fill-pressed)]',
+  ghost: 'bg-transparent text-accent active:opacity-50',
+  danger: 'bg-danger text-white active:opacity-80',
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-10 px-3 text-sm',
-  md: 'h-12 px-4 text-base',
-  lg: 'h-14 px-6 text-lg',
+  sm: 'h-9 px-4 text-subhead',
+  md: 'h-[50px] px-5 text-body',
+  lg: 'h-14 px-6 text-body',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
@@ -30,9 +33,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref,
 ) {
   const classes = [
-    'inline-flex items-center justify-center gap-2 rounded-full font-medium',
-    'transition-all duration-150 active:scale-[0.98]',
-    'disabled:opacity-50 disabled:pointer-events-none',
+    'inline-flex items-center justify-center gap-2 rounded-full font-semibold',
+    'transition-[opacity,transform,background-color] duration-150 active:scale-[0.97]',
+    'disabled:opacity-40 disabled:pointer-events-none',
     'min-h-touch',
     variantClasses[variant],
     sizeClasses[size],

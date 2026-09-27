@@ -1,54 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
-
-type Theme = 'dark' | 'light';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { applyThemePreference, readThemePreference, type ThemePreference } from '@/lib/theme';
 
 export function ThemePicker() {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<ThemePreference>('system');
 
   useEffect(() => {
-    const stored = (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) as Theme | null;
-    setTheme(stored === 'light' ? 'light' : 'dark');
+    setTheme(readThemePreference());
   }, []);
 
-  function setAndPersist(next: Theme) {
+  function handleChange(next: ThemePreference) {
     setTheme(next);
-    try {
-      localStorage.setItem('theme', next);
-    } catch {
-      // ignore
-    }
-    document.documentElement.classList.toggle('light', next === 'light');
+    applyThemePreference(next);
   }
 
   return (
-    <div className="bg-surface rounded-2xl p-1.5 flex gap-1">
-      <button
-        type="button"
-        onClick={() => setAndPersist('dark')}
-        aria-pressed={theme === 'dark'}
-        className={[
-          'flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-medium transition-colors',
-          theme === 'dark' ? 'bg-surface-2 text-text' : 'text-text-muted',
-        ].join(' ')}
-      >
-        <Moon size={16} />
-        Oscuro
-      </button>
-      <button
-        type="button"
-        onClick={() => setAndPersist('light')}
-        aria-pressed={theme === 'light'}
-        className={[
-          'flex-1 flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-medium transition-colors',
-          theme === 'light' ? 'bg-surface-2 text-text' : 'text-text-muted',
-        ].join(' ')}
-      >
-        <Sun size={16} />
-        Claro
-      </button>
+    <div className="bg-surface rounded-cell px-4 py-3">
+      <SegmentedControl<ThemePreference>
+        ariaLabel="Apariencia"
+        value={theme}
+        onChange={handleChange}
+        segments={[
+          { value: 'system', label: 'Automático' },
+          { value: 'light', label: 'Claro' },
+          { value: 'dark', label: 'Oscuro' },
+        ]}
+      />
     </div>
   );
 }

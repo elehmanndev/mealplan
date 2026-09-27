@@ -46,9 +46,16 @@ export function BottomNav({ currentWeek }: { currentWeek?: string }) {
     },
   ];
 
+  // iOS 26 tab bar: a floating Liquid Glass capsule inset from the screen
+  // edges, with a tinted pill behind the selected tab.
   return (
-    <nav data-bottom-nav className="fixed bottom-0 inset-x-0 z-30 glass-bottom safe-bottom">
-      <ul className="flex mx-auto max-w-3xl">
+    <nav
+      data-bottom-nav
+      aria-label="Navegación principal"
+      className="fixed inset-x-0 z-30 flex justify-center px-4 pointer-events-none"
+      style={{ bottom: 'max(12px, calc(env(safe-area-inset-bottom) - 10px))' }}
+    >
+      <ul className="glass pointer-events-auto flex w-full max-w-md rounded-full p-1">
         {items.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
@@ -56,15 +63,17 @@ export function BottomNav({ currentWeek }: { currentWeek?: string }) {
             <li key={item.label} className="flex-1">
               <Link
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 className={[
-                  'flex flex-col items-center justify-center min-h-touch py-3 gap-1',
-                  active ? 'text-accent' : 'text-text-muted',
+                  'flex h-[54px] flex-col items-center justify-center gap-[3px] rounded-full',
+                  'transition-colors duration-200 active:scale-95 active:transition-transform',
+                  active ? 'bg-fill text-accent' : 'text-text',
                 ].join(' ')}
               >
-                <span className="w-6 h-6 flex items-center justify-center">
-                  <Icon size={22} strokeWidth={2} />
+                <Icon size={22} strokeWidth={active ? 2.25 : 1.75} />
+                <span className="text-[10px] font-semibold leading-none tracking-[0.1px]">
+                  {item.label}
                 </span>
-                <span className="text-xs font-medium leading-none">{item.label}</span>
               </Link>
             </li>
           );
