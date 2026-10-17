@@ -81,12 +81,21 @@ export function ShoppingListItem({ item, week }: ShoppingListItemProps) {
             <span
               className={[
                 'flex-1 truncate text-body transition-colors',
-                checked ? 'text-text-muted' : 'text-text',
+                checked ? 'text-text-muted line-through' : 'text-text',
               ].join(' ')}
             >
               {item.name}
             </span>
-            {qty && <span className="shrink-0 text-subhead text-text-muted tabular-nums">{qty}</span>}
+            {qty && (
+              <span
+                className={[
+                  'shrink-0 text-subhead tabular-nums transition-colors',
+                  checked ? 'text-text-tertiary line-through' : 'text-text-muted',
+                ].join(' ')}
+              >
+                {qty}
+              </span>
+            )}
           </span>
         </button>
       </div>
