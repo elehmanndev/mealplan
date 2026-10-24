@@ -23,7 +23,7 @@ node scripts/generate-icons.mjs
 Tests live at `src/**/__tests__/**/*.test.ts` (see `vitest.config.ts`). Tests that touch the DB set `process.env.DATABASE_PATH` to a temp file **before** importing any module that uses `@/lib/db` — the DB module is a global singleton and resolves its path lazily on first access.
 
 Required env vars:
-- `GEMINI_API_KEY` — `/api/chat` returns 500 without it.
+- `LLM_BASE_URL` + `LLM_API_KEY` (+ optional `LLM_MODEL`) — OpenAI-compatible endpoint for `/api/chat`; returns 500 without them.
 - `AUTH_SECRET` + `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — NextAuth Google provider.
 - `AUTH_URL` — base URL used when building invite links in `createInviteAction`.
 - `MEALPLAN_OWNER_EMAIL` — email that auto-claims household id 1 on first sign-in (see "Owner claim" below).
@@ -111,7 +111,7 @@ Recipes carry a nullable `share_token`. `/r/[token]` (in `PUBLIC_PATH_PREFIXES` 
 
 ### Chat assistant (`/chat`)
 
-SSE stream from `/api/chat/route.ts` to `@google/genai` (Gemini 2.5 Flash). The model calls a `save_recipe` tool; the route validates and emits a `recipe_draft` event. Saving the (possibly user-edited) draft is a **separate** POST to `/api/import` — the chat route never writes recipes itself. Per-user daily cap enforced via `chat_usage` table (`src/lib/chat-rate-limit.ts`). Full doc: [docs/chat-assistant.md](docs/chat-assistant.md).
+SSE stream from `/api/chat/route.ts` to an OpenAI-compatible gateway (9router on Unraid, `cx/gpt-6-luna`) via the `openai` SDK; env `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`. The model calls a `save_recipe` tool; the route validates and emits a `recipe_draft` event. Saving the (possibly user-edited) draft is a **separate** POST to `/api/import` — the chat route never writes recipes itself. Per-user daily cap enforced via `chat_usage` table (`src/lib/chat-rate-limit.ts`). Full doc: [docs/chat-assistant.md](docs/chat-assistant.md).
 
 ### Recipe import
 
