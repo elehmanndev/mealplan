@@ -19,3 +19,4 @@ services:
       # docker compose auto-reads .env from the project dir; this line passes the
       # value through to the container. Empty = chat route returns 500.
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-}

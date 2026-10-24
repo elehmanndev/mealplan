@@ -15,7 +15,7 @@ import { extractFirstUrl, fetchRecipeUrl } from '@/lib/fetch-recipe-url';
 
 export const dynamic = 'force-dynamic';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const MAX_TOOL_ROUNDS = 2;
 const PER_STREAM_TIMEOUT_MS = 25000;
 
@@ -694,6 +694,15 @@ export async function POST(request: Request) {
         send('done', { used: limit.used, remaining: limit.remaining, cap: PER_USER_DAILY_CAP });
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Error de Gemini';
+        console.error('[chat] Gemini call failed', JSON.stringify({ model: MODEL, user_id: user.id, msg }));
+        // Refund the slot — a thrown Gemini error produced nothing usable.
+        try {
+          db.prepare(
+            'UPDATE chat_usage SET count = MAX(count - 1, 0) WHERE user_id = ? AND date = ?',
+          ).run(user.id, new Date().toISOString().slice(0, 10));
+        } catch {
+          // ignore
+        }
         const isQuota = /quota|rate|429/i.test(msg);
         send('error', {
           message: isQuota
