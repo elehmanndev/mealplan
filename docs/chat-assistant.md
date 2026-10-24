@@ -1,6 +1,6 @@
 # Chat assistant (`/chat`)
 
-Gemini-powered conversational interface for adding recipes to the recipe book in free-form natural language. The model proposes a recipe, the user reviews/edits it on a card, and saves with one tap. The model can also answer questions about the current draft ("¿es vegano?") without regenerating it.
+LLM-powered conversational interface for adding recipes to the recipe book in free-form natural language. The model proposes a recipe, the user reviews/edits it on a card, and saves with one tap. The model can also answer questions about the current draft ("¿es vegano?") without regenerating it.
 
 ## At a glance
 
@@ -9,24 +9,26 @@ Gemini-powered conversational interface for adding recipes to the recipe book in
 | Page | [`src/app/chat/page.tsx`](../src/app/chat/page.tsx) | Server component shell, hosts `<ChatPanel>` and the bottom nav |
 | UI | [`src/components/chat/ChatPanel.tsx`](../src/components/chat/ChatPanel.tsx) | SSE consumer, markdown via `react-markdown` + `remark-gfm`, mic button, sessionStorage persistence, auto-scroll, "Nueva conversación" reset |
 | Draft card | [`src/components/chat/RecipeDraftCard.tsx`](../src/components/chat/RecipeDraftCard.tsx) | Editable card; emits `onChange` on every edit so ChatPanel keeps the draft in sync |
-| API | [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts) | SSE streaming, Gemini 2.5 Flash, `save_recipe` tool, scope + injection guardrails |
+| API | [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts) | SSE streaming, OpenAI-compatible gateway (9router, `cx/gpt-6-luna`), `save_recipe` tool, scope + injection guardrails |
 | Schema (strict) | `ChatRecipeSchema` inside the route | Source of truth for "is this complete?" |
-| Schema (loose) | `recipeJsonSchema` in the route, sent to Gemini | No `required` — model is encouraged to call with whatever it has |
+| Schema (loose) | `recipeJsonSchema` in the route, sent to the model | No `required` — model is encouraged to call with whatever it has |
 | Rate limit | [`src/lib/chat-rate-limit.ts`](../src/lib/chat-rate-limit.ts), migration `008_chat_usage.sql` | Per-IP daily cap (200), SQLite |
 | Save path | [`src/app/api/import/route.ts`](../src/app/api/import/route.ts) | Reused for both paste-JSON and chat-draft saves |
 | Pantry/al-gusto | `'al_gusto'` in `UNITS`, `formatAmount()` in [`src/lib/scale.ts`](../src/lib/scale.ts) | Pantry items render as "al gusto", excluded from shopping list |
 
 ## Setup
 
-1. Create a Gemini API key in **AI Studio** → pick the GCP project (we use `mealplan-495807` under the `***REDACTED-CF-TEAM***-org` org). Enable the Generative Language API.
-2. Add to `.env.local` for dev:
-   ```
-   GEMINI_API_KEY=AIza...
-   ```
-3. **Unraid prod**: add the same env var to the `mealplan` container (Docker UI → Edit → Environment Variables → Apply, container restarts).
-4. Optional: in AI Studio → Spend, set a monthly cap (e.g. €2). Once exceeded, Gemini hard-stops and our route surfaces a "saturado por hoy" toast.
+The route talks to any **OpenAI-compatible** endpoint (`openai` SDK, `/v1/chat/completions` with tools + streaming). In prod that's **9router** on the Unraid box, using the `cx/` (Codex/ChatGPT) models.
 
-The route returns `500 GEMINI_API_KEY no configurada` if the env var is missing.
+```
+LLM_BASE_URL=http://192.168.1.45:20128/v1   # 9router (LAN IP; reachable from the container)
+LLM_API_KEY=sk-...                          # a 9router API key named "Mealplan"
+LLM_MODEL=cx/gpt-6-luna                     # optional, this is the default
+```
+
+Put them in `/mnt/user/appdata/mealplan/.env` on Unraid (compose reads it) or `.env.local` for dev, then `docker compose up -d`. The route returns `500 LLM_BASE_URL / LLM_API_KEY no configuradas` if either is missing.
+
+Note: 9router's Gemini-native `/v1beta` route drops tools when translating to `cx/` models, so always use the OpenAI endpoint.
 
 ## Architecture
 

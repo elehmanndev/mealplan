@@ -1,9 +1,5 @@
-import {
-  GoogleGenAI,
-  FunctionCallingConfigMode,
-  type Content,
-  type FunctionDeclaration,
-} from '@google/genai';
+import OpenAI from 'openai';
+import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
 import { z } from 'zod';
 import { RECIPE_CATEGORIES, RECIPE_TAGS, UNITS } from '@/types';
 import { SHOPPING_CATEGORIES } from '@/lib/shopping-types';
@@ -15,7 +11,9 @@ import { extractFirstUrl, fetchRecipeUrl } from '@/lib/fetch-recipe-url';
 
 export const dynamic = 'force-dynamic';
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+// OpenAI-compatible gateway (9router on the homelab). Model ids carry the
+// 9router provider prefix, e.g. `cx/gpt-6-luna`.
+const MODEL = process.env.LLM_MODEL || 'cx/gpt-6-luna';
 const MAX_TOOL_ROUNDS = 2;
 const PER_STREAM_TIMEOUT_MS = 25000;
 
@@ -146,15 +144,28 @@ const recipeJsonSchema = {
   },
 };
 
-const saveRecipeDeclaration: FunctionDeclaration = {
-  name: 'save_recipe',
-  description:
-    'Intenta guardar una receta en el recetario. Llama con TODOS los datos que tengas en cada turno, aunque estén incompletos. Si faltan campos o hay valores inválidos, la herramienta devuelve missing_fields/invalid_fields para que sepas qué pedirle al usuario.',
-  parametersJsonSchema: recipeJsonSchema,
+const saveRecipeTool: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'save_recipe',
+    description:
+      'Intenta guardar una receta en el recetario. Llama con TODOS los datos que tengas en cada turno, aunque estén incompletos. Si faltan campos o hay valores inválidos, la herramienta devuelve missing_fields/invalid_fields para que sepas qué pedirle al usuario.',
+    parameters: recipeJsonSchema as Record<string, unknown>,
+  },
 };
 
-function toGeminiContents(messages: { role: 'user' | 'model'; content: string }[]): Content[] {
-  return messages.map((m) => ({ role: m.role, parts: [{ text: m.content }] }));
+// Client history uses 'model' for assistant turns (kept from the Gemini era).
+function toChatMessages(
+  messages: { role: 'user' | 'model'; content: string }[],
+): ChatCompletionMessageParam[] {
+  return [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...messages.map((m): ChatCompletionMessageParam =>
+      m.role === 'model'
+        ? { role: 'assistant', content: m.content }
+        : { role: 'user', content: m.content },
+    ),
+  ];
 }
 
 function formatPath(path: (string | number)[]): string {
@@ -350,7 +361,7 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-// Fallback message picker — used when Gemini returns nothing usable.
+// Fallback message picker — used when the model returns nothing usable.
 // Different shapes for different failure flavors, plus per-flavor variants
 // chosen at random so a user retrying the same broken thing doesn't see
 // the identical error twice in a row.
@@ -386,10 +397,11 @@ function pickFallbackMessage(args: {
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const apiKey = process.env.LLM_API_KEY;
+  const baseURL = process.env.LLM_BASE_URL;
+  if (!apiKey || !baseURL) {
     return new Response(
-      sseEvent('error', { message: 'GEMINI_API_KEY no configurada en el servidor' }),
+      sseEvent('error', { message: 'LLM_BASE_URL / LLM_API_KEY no configuradas en el servidor' }),
       { status: 500, headers: { 'Content-Type': 'text/event-stream' } },
     );
   }
@@ -431,7 +443,7 @@ export async function POST(request: Request) {
   }
 
   // If the last user message contains a URL, fetch the page and prepend the
-  // extracted text as context — Gemini then converts it to a recipe JSON
+  // extracted text as context — the model then converts it to a recipe JSON
   // draft via the same tool-calling path used for typed-in recipes. URL
   // fetch failures abort the request and refund the rate-limit slot (we
   // don't want to burn a daily message on a 404).
@@ -445,7 +457,7 @@ export async function POST(request: Request) {
       const fetched = await fetchRecipeUrl(url);
       if (fetched.ok) {
         const trimmedUserText = lastMessage.content.replace(url, '').trim();
-        // Reframe the message so Gemini sees a normal "make me this recipe"
+        // Reframe the message so the model sees a normal "make me this recipe"
         // user request, with the fetched content inline as the recipe data.
         // Earlier framing (meta-bracket + """fences""") seemed to confuse the
         // model into ignoring the request entirely.
@@ -460,7 +472,7 @@ export async function POST(request: Request) {
         messages[lastIdx] = { role: 'user', content: augmented };
         urlContext = { hostname };
       } else {
-        // Refund the rate-limit slot — we never made the Gemini call.
+        // Refund the rate-limit slot — we never made the LLM call.
         db.prepare(
           'UPDATE chat_usage SET count = MAX(count - 1, 0) WHERE user_id = ? AND date = ?',
         ).run(user.id, new Date().toISOString().slice(0, 10));
@@ -487,8 +499,8 @@ export async function POST(request: Request) {
     }
   }
 
-  const ai = new GoogleGenAI({ apiKey });
-  const contents: Content[] = toGeminiContents(messages);
+  const ai = new OpenAI({ apiKey, baseURL });
+  const chatMessages = toChatMessages(messages);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -503,69 +515,70 @@ export async function POST(request: Request) {
         const recipesSkippedNames: string[] = [];
         let lastValidationFailedModelDomain = false;
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-          const stream = await ai.models.generateContentStream({
+          const stream = await ai.chat.completions.create({
             model: MODEL,
-            contents,
-            config: {
-              systemInstruction: SYSTEM_PROMPT,
-              tools: [{ functionDeclarations: [saveRecipeDeclaration] }],
-              toolConfig: {
-                functionCallingConfig: { mode: FunctionCallingConfigMode.AUTO },
-              },
-              temperature: 0.3,
-              // Big enough to emit a save_recipe tool call with 20+
-              // ingredients. Was 1500 — a Hello Fresh recipe with 15
-              // ingredients was hitting that limit mid-call and the
-              // model returned nothing at all.
-              maxOutputTokens: 4000,
-            },
+            messages: chatMessages,
+            tools: [saveRecipeTool],
+            tool_choice: 'auto',
+            temperature: 0.3,
+            // Big enough to emit a save_recipe tool call with 20+ ingredients.
+            max_tokens: 4000,
+            stream: true,
           });
 
           let accumulatedText = '';
-          const accumulatedCalls: { name: string; args: Record<string, unknown> }[] = [];
+          // Tool-call args arrive as string fragments keyed by index;
+          // accumulate them and JSON.parse once the stream ends.
+          const pendingCalls = new Map<number, { id: string; name: string; args: string }>();
           const roundDeadline = Date.now() + PER_STREAM_TIMEOUT_MS;
           let timedOut = false;
-          // Capture the last chunk's finishReason / safetyRatings so we can
-          // log them if the round produces nothing — empty Gemini responses
-          // are almost always one of MAX_TOKENS / SAFETY / OTHER.
           let lastFinishReason: string | undefined;
-          let lastSafety: unknown;
 
           for await (const chunk of stream) {
             if (Date.now() > roundDeadline) {
               timedOut = true;
               break;
             }
-            const calls = chunk.functionCalls ?? [];
-            if (calls.length > 0) {
-              for (const c of calls) {
-                accumulatedCalls.push({ name: c.name ?? '', args: c.args ?? {} });
-              }
+            const choice = chunk.choices?.[0];
+            if (!choice) continue;
+            for (const tc of choice.delta?.tool_calls ?? []) {
+              const prev = pendingCalls.get(tc.index) ?? { id: '', name: '', args: '' };
+              pendingCalls.set(tc.index, {
+                id: tc.id || prev.id,
+                name: tc.function?.name || prev.name,
+                args: prev.args + (tc.function?.arguments ?? ''),
+              });
             }
-            const text = chunk.text;
+            const text = choice.delta?.content;
             if (text) {
               accumulatedText += text;
               totalTextStreamed += text.length;
               send('text', { delta: text });
             }
-            // Track candidate-level metadata from every chunk — Gemini puts
-            // finishReason on the last chunk with content; the safetyRatings
-            // can show up on any chunk.
-            const cand = chunk.candidates?.[0];
-            if (cand?.finishReason) lastFinishReason = cand.finishReason;
-            if (cand?.safetyRatings) lastSafety = cand.safetyRatings;
+            if (choice.finish_reason) lastFinishReason = choice.finish_reason;
           }
 
+          const accumulatedCalls = [...pendingCalls.values()].map((c, i) => {
+            let args: Record<string, unknown> = {};
+            try {
+              args = c.args ? (JSON.parse(c.args) as Record<string, unknown>) : {};
+            } catch {
+              // Truncated JSON — empty args make the validator report every
+              // field missing, which feeds the normal retry path.
+            }
+            return { id: c.id || `call_${round}_${i}`, name: c.name, args };
+          });
+
           if (accumulatedCalls.length === 0 && !accumulatedText) {
-            // Log only when we got nothing back — gives us a single line in
-            // docker logs per dead Gemini response with the why.
+            // Log only when we got nothing back — one line in docker logs per
+            // dead response with the why.
             console.warn(
-              '[chat] empty Gemini response',
+              '[chat] empty LLM response',
               JSON.stringify({
                 round,
+                model: MODEL,
                 user_id: user.id,
                 finishReason: lastFinishReason,
-                safety: lastSafety,
                 urlHost: urlContext?.hostname ?? null,
                 lastMessageLen: messages[lastIdx]?.content.length ?? 0,
               }),
@@ -585,27 +598,23 @@ export async function POST(request: Request) {
             break;
           }
 
-          contents.push({
-            role: 'model',
-            parts: [
-              ...(accumulatedText ? [{ text: accumulatedText }] : []),
-              ...accumulatedCalls.map((c) => ({
-                functionCall: { name: c.name, args: c.args },
-              })),
-            ],
+          chatMessages.push({
+            role: 'assistant',
+            content: accumulatedText || null,
+            tool_calls: accumulatedCalls.map((c) => ({
+              id: c.id,
+              type: 'function' as const,
+              function: { name: c.name, arguments: JSON.stringify(c.args) },
+            })),
           });
 
           const toolResults: ToolResult[] = [];
-          const responseParts = accumulatedCalls.map((call) => {
+          for (const call of accumulatedCalls) {
             if (call.name !== 'save_recipe') {
               const result: ToolResult = { ok: false, error: 'Función desconocida' };
               toolResults.push(result);
-              return {
-                functionResponse: {
-                  name: call.name || 'unknown',
-                  response: result as unknown as Record<string, unknown>,
-                },
-              };
+              chatMessages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
+              continue;
             }
             const result = runSaveRecipeTool(call.args);
             toolResults.push(result);
@@ -624,17 +633,11 @@ export async function POST(request: Request) {
               );
               lastValidationFailedModelDomain = userMissing.length === 0 && userInvalid.length === 0;
             }
-            return {
-              functionResponse: {
-                name: 'save_recipe',
-                response: result as unknown as Record<string, unknown>,
-              },
-            };
-          });
-          contents.push({ role: 'user', parts: responseParts });
+            chatMessages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
+          }
 
           // If any tool result has user-side missing/invalid, emit a deterministic
-          // question and stop — don't burn another Gemini round just to verbalize it.
+          // question and stop — don't burn another model round just to verbalize it.
           const userQuestions = toolResults
             .map((r) =>
               r.ok
@@ -654,8 +657,8 @@ export async function POST(request: Request) {
           }
 
           // If a draft was emitted or a recipe is duplicate, short-circuit with a
-          // deterministic confirmation — don't burn a Gemini round in AUTO mode
-          // that often produces no text on Flash-Lite.
+          // deterministic confirmation — don't burn a model round
+          // that often produces no text.
           const anySuccess = toolResults.some((r) => r.ok);
           if (anySuccess) {
             const parts: string[] = [];
@@ -677,7 +680,7 @@ export async function POST(request: Request) {
         }
 
         if (totalTextStreamed === 0 && !draftEmitted) {
-          // Refund the rate-limit slot — Gemini gave us nothing usable, so
+          // Refund the rate-limit slot — the model gave us nothing usable, so
           // we shouldn't have charged the user. Best-effort; if the DB write
           // fails, the worst case is a slightly-undercredited counter.
           try {
@@ -693,9 +696,9 @@ export async function POST(request: Request) {
         }
         send('done', { used: limit.used, remaining: limit.remaining, cap: PER_USER_DAILY_CAP });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Error de Gemini';
-        console.error('[chat] Gemini call failed', JSON.stringify({ model: MODEL, user_id: user.id, msg }));
-        // Refund the slot — a thrown Gemini error produced nothing usable.
+        const msg = err instanceof Error ? err.message : 'Error del modelo';
+        console.error('[chat] LLM call failed', JSON.stringify({ model: MODEL, user_id: user.id, msg }));
+        // Refund the slot — a thrown LLM error produced nothing usable.
         try {
           db.prepare(
             'UPDATE chat_usage SET count = MAX(count - 1, 0) WHERE user_id = ? AND date = ?',
