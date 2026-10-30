@@ -20,3 +20,6 @@ services:
       - LLM_BASE_URL=${LLM_BASE_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_MODEL=${LLM_MODEL:-}
+      # Read-only bearer token for /api/agent/plan (OpenBot). Empty = endpoint disabled.
+      - MEALPLAN_AGENT_TOKEN=${MEALPLAN_AGENT_TOKEN:-}
+      - MEALPLAN_AGENT_HOUSEHOLD_ID=${MEALPLAN_AGENT_HOUSEHOLD_ID:-1}

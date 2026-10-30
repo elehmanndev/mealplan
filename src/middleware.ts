@@ -8,6 +8,7 @@ const { auth } = NextAuth(authConfig);
 
 const PUBLIC_PATH_PREFIXES = [
   '/api/auth',
+  '/api/agent', // bearer-token auth in the route itself (src/lib/agent-auth.ts)
   '/login',
   '/welcome',
   '/join',
