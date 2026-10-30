@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface BottomSheetProps {
@@ -40,7 +41,10 @@ export function BottomSheet({ open, onClose, title, children, fullHeight = false
     if (!open) setDragY(0);
   }, [open]);
 
-  if (!open) return null;
+  // Portal to <body>: a sheet opened from inside NavBar (sticky, z-20, backdrop
+  // blur) is otherwise trapped in its stacking context and ends up under the
+  // floating CTA and the tab bar.
+  if (!open || typeof document === 'undefined') return null;
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -62,7 +66,7 @@ export function BottomSheet({ open, onClose, title, children, fullHeight = false
 
   const dragging = dragStart.current != null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <button
         aria-label="Cerrar"
@@ -133,6 +137,7 @@ export function BottomSheet({ open, onClose, title, children, fullHeight = false
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }
