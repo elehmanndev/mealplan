@@ -10,6 +10,7 @@ Every request needs:
 Authorization: Bearer <MEALPLAN_AGENT_TOKEN>
 ```
 
+- **The token reads and writes.** There is one token, no read-only variant: anyone holding `MEALPLAN_AGENT_TOKEN` can change the household's plan and shopping list (add, move, rescale and remove plan entries; add, tick and remove shopping extras; tick recipe items). Give it only to agents you trust to make those changes, and treat it like a password.
 - Disabled (401) unless `MEALPLAN_AGENT_TOKEN` is set. Generate one with `openssl rand -hex 32` and put it in the host `.env`.
 - The token maps to one household: `MEALPLAN_AGENT_HOUSEHOLD_ID` (default `1`, Casa Lehmann). Every read and write is scoped to it; ids from another household answer 404 and change nothing.
 - `/api/agent` and `/api/mcp` are public in `src/middleware.ts`; the routes check the token themselves with a constant-time compare.
