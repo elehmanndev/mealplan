@@ -69,3 +69,35 @@ export const ShoppingExtraInput = z.object({
   supermarket: z.string().nullable().optional(),
 });
 export type ShoppingExtraInput = z.infer<typeof ShoppingExtraInput>;
+
+// ── Agent API (bearer token, src/lib/agent-ops.ts) ──
+// Agents send any day of the week; the server derives the Saturday week key,
+// so an extra can never land on a non-Saturday key and go invisible.
+const DateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD');
+
+export const AgentWeekQuery = z.object({ date: DateStr.optional() });
+
+export const AgentRecipeSearch = z.object({
+  q: z.string().trim().max(120).optional(),
+  favorites_only: z.boolean().optional(),
+});
+
+export const PlanServingsInput = z.object({
+  entry_id: z.number().int().positive(),
+  servings: z.number().positive().max(50),
+});
+export type PlanServingsInput = z.infer<typeof PlanServingsInput>;
+
+export const AgentShoppingExtraInput = ShoppingExtraInput.omit({ week: true }).extend({
+  date: DateStr.optional(),
+});
+export type AgentShoppingExtraInput = z.infer<typeof AgentShoppingExtraInput>;
+
+// `kind` + `id` are the ones listed by the agent week view (ShoppingItem.kind/id).
+export const AgentShoppingCheckInput = z.object({
+  date: DateStr.optional(),
+  kind: z.enum(['recipe', 'extra']),
+  id: z.number().int().positive(),
+  checked: z.boolean(),
+});
+export type AgentShoppingCheckInput = z.infer<typeof AgentShoppingCheckInput>;

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { NotFoundError } from '@/lib/errors';
 import type { Recipe, RecipeWithIngredients, RecipeIngredient } from '@/types';
 import type { RecipeInput } from '@/schemas';
 import { findOrCreateIngredient } from './ingredient';
@@ -63,7 +64,7 @@ export function setRecipeShareToken(
   const res = db
     .prepare('UPDATE recipes SET share_token = ? WHERE id = ? AND household_id = ?')
     .run(token, id, householdId);
-  if (res.changes === 0) throw new Error('Recipe not found in this household');
+  if (res.changes === 0) throw new NotFoundError('Recipe not found in this household');
 }
 
 /**
@@ -189,7 +190,7 @@ export function updateRecipe(householdId: number, id: number, input: RecipeInput
         id,
         householdId,
       );
-    if (res.changes === 0) throw new Error('Recipe not found in this household');
+    if (res.changes === 0) throw new NotFoundError('Recipe not found in this household');
     db.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').run(id);
     for (const ing of data.ingredients) {
       const ingId =
@@ -212,14 +213,14 @@ export function deleteRecipe(householdId: number, id: number): void {
   const res = db
     .prepare('DELETE FROM recipes WHERE id = ? AND household_id = ?')
     .run(id, householdId);
-  if (res.changes === 0) throw new Error('Recipe not found in this household');
+  if (res.changes === 0) throw new NotFoundError('Recipe not found in this household');
 }
 
 export function toggleFavoriteRecipe(householdId: number, id: number): void {
   const res = db
     .prepare('UPDATE recipes SET is_favorite = 1 - is_favorite WHERE id = ? AND household_id = ?')
     .run(id, householdId);
-  if (res.changes === 0) throw new Error('Recipe not found in this household');
+  if (res.changes === 0) throw new NotFoundError('Recipe not found in this household');
 }
 
 export function duplicateRecipe(householdId: number, id: number): number {
@@ -227,7 +228,7 @@ export function duplicateRecipe(householdId: number, id: number): number {
     const src = db
       .prepare('SELECT * FROM recipes WHERE id = ? AND household_id = ?')
       .get(srcId, householdId) as RecipeRow | undefined;
-    if (!src) throw new Error('Recipe not found in this household');
+    if (!src) throw new NotFoundError('Recipe not found in this household');
     const res = db
       .prepare(
         `INSERT INTO recipes (household_id, name, description, emoji, base_servings, category, prep_time_min, notes, is_favorite)
