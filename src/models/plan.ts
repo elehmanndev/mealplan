@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { NotFoundError } from '@/lib/errors';
 import { formatDate, getWeekDates } from '@/lib/week';
 import type { PlanEntry, Slot } from '@/types';
 
@@ -63,7 +64,7 @@ export function addPlanEntry(
   const recipeOk = db
     .prepare('SELECT 1 FROM recipes WHERE id = ? AND household_id = ?')
     .get(input.recipe_id, householdId);
-  if (!recipeOk) throw new Error('Recipe not found in this household');
+  if (!recipeOk) throw new NotFoundError('Recipe not found in this household');
   const res = db
     .prepare(
       'INSERT INTO meal_plan (household_id, date, slot, recipe_id, servings) VALUES (?, ?, ?, ?, ?)',
@@ -83,7 +84,7 @@ export function movePlanEntry(
       'UPDATE meal_plan SET date = ?, slot = ? WHERE id = ? AND household_id = ?',
     )
     .run(input.to_date, input.to_slot, input.entry_id, householdId);
-  if (res.changes === 0) throw new Error('Plan entry not found in this household');
+  if (res.changes === 0) throw new NotFoundError('Plan entry not found in this household');
 }
 
 export function duplicatePlanEntry(
@@ -93,7 +94,7 @@ export function duplicatePlanEntry(
   const src = db
     .prepare('SELECT recipe_id, servings FROM meal_plan WHERE id = ? AND household_id = ?')
     .get(input.entry_id, householdId) as { recipe_id: number; servings: number } | undefined;
-  if (!src) throw new Error('Plan entry not found in this household');
+  if (!src) throw new NotFoundError('Plan entry not found in this household');
   return addPlanEntry(householdId, {
     date: input.to_date,
     slot: input.to_slot,
@@ -106,14 +107,14 @@ export function updatePlanServings(householdId: number, entry_id: number, servin
   const res = db
     .prepare('UPDATE meal_plan SET servings = ? WHERE id = ? AND household_id = ?')
     .run(servings, entry_id, householdId);
-  if (res.changes === 0) throw new Error('Plan entry not found in this household');
+  if (res.changes === 0) throw new NotFoundError('Plan entry not found in this household');
 }
 
 export function removePlanEntry(householdId: number, id: number): void {
   const res = db
     .prepare('DELETE FROM meal_plan WHERE id = ? AND household_id = ?')
     .run(id, householdId);
-  if (res.changes === 0) throw new Error('Plan entry not found in this household');
+  if (res.changes === 0) throw new NotFoundError('Plan entry not found in this household');
 }
 
 export function clearWeek(householdId: number, weekStr: string): void {
