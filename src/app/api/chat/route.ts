@@ -301,10 +301,50 @@ function extractIngredientNames(args: unknown): string[] {
   });
 }
 
+const oneOf = <T extends string>(allowed: readonly T[], v: unknown): T | undefined =>
+  typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
+
+// The model often sends near-miss values (a tag like "Otoño", quantity 0 on a
+// pantry item, an invented shopping category). Drop those instead of bouncing
+// the whole recipe — every one of these fields is optional or has a default.
+function sanitizeRecipeArgs(args: unknown): unknown {
+  if (!args || typeof args !== 'object') return args;
+  const a = { ...(args as Record<string, unknown>) };
+  a.category = oneOf(RECIPE_CATEGORIES, a.category);
+  if (Array.isArray(a.tags)) a.tags = a.tags.filter((t) => oneOf(RECIPE_TAGS, t));
+  else delete a.tags;
+  for (const k of ['servings', 'prep_time_min'] as const) {
+    const n = Number(a[k]);
+    a[k] = Number.isFinite(n) && n >= 1 ? Math.round(n) : undefined;
+  }
+  for (const k of ['emoji', 'description', 'notes'] as const) {
+    if (typeof a[k] !== 'string' || !(a[k] as string).trim()) delete a[k];
+  }
+  if (Array.isArray(a.ingredients)) {
+    a.ingredients = a.ingredients
+      .filter((i) => i && typeof i === 'object' && typeof (i as { name?: unknown }).name === 'string')
+      .map((raw) => {
+        const i = raw as Record<string, unknown>;
+        const q = Number(i.quantity);
+        return {
+          name: (i.name as string).trim(),
+          is_pantry: i.is_pantry === true,
+          quantity: Number.isFinite(q) && q > 0 ? q : undefined,
+          unit: oneOf(UNITS, i.unit),
+          shopping_category: oneOf(SHOPPING_CATEGORIES, i.shopping_category),
+          supermarket: oneOf(SUPERMARKET_IDS, i.supermarket),
+        };
+      })
+      .filter((i) => i.name);
+  }
+  return a;
+}
+
 function runSaveRecipeTool(args: unknown): ToolResult {
   const ingredientNames = extractIngredientNames(args);
-  const parsed = ChatRecipeSchema.safeParse(args ?? {});
+  const parsed = ChatRecipeSchema.safeParse(sanitizeRecipeArgs(args ?? {}));
   if (!parsed.success) {
+    console.warn('[chat] save_recipe rejected', JSON.stringify(parsed.error.issues.slice(0, 10)));
     const missing: string[] = [];
     const invalid: { path: string; reason: string }[] = [];
     for (const issue of parsed.error.issues) {
