@@ -111,7 +111,7 @@ Recipes carry a nullable `share_token`. `/r/[token]` (in `PUBLIC_PATH_PREFIXES` 
 
 ### Chat assistant (`/chat`)
 
-SSE stream from `/api/chat/route.ts` to an OpenAI-compatible gateway (9router on Unraid, `cx/gpt-6-luna`) via the `openai` SDK; env `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`. The model calls a `save_recipe` tool; the route validates and emits a `recipe_draft` event. Saving the (possibly user-edited) draft is a **separate** POST to `/api/import` — the chat route never writes recipes itself. Per-user daily cap enforced via `chat_usage` table (`src/lib/chat-rate-limit.ts`). Full doc: [docs/chat-assistant.md](docs/chat-assistant.md).
+SSE stream from `/api/chat/route.ts` to an OpenAI-compatible gateway (9router on Unraid, `cx/gpt-5.6-terra`) via the `openai` SDK; env `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`. The model calls a `save_recipe` tool; the route validates and emits a `recipe_draft` event. Saving the (possibly user-edited) draft is a **separate** POST to `/api/import` — the chat route never writes recipes itself. Per-user daily cap enforced via `chat_usage` table (`src/lib/chat-rate-limit.ts`). Full doc: [docs/chat-assistant.md](docs/chat-assistant.md).
 
 ### Recipe import
 

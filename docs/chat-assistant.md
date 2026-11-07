@@ -9,7 +9,7 @@ LLM-powered conversational interface for adding recipes to the recipe book in fr
 | Page | [`src/app/chat/page.tsx`](../src/app/chat/page.tsx) | Server component shell, hosts `<ChatPanel>` and the bottom nav |
 | UI | [`src/components/chat/ChatPanel.tsx`](../src/components/chat/ChatPanel.tsx) | SSE consumer, markdown via `react-markdown` + `remark-gfm`, mic button, sessionStorage persistence, auto-scroll, "Nueva conversación" reset |
 | Draft card | [`src/components/chat/RecipeDraftCard.tsx`](../src/components/chat/RecipeDraftCard.tsx) | Editable card; emits `onChange` on every edit so ChatPanel keeps the draft in sync |
-| API | [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts) | SSE streaming, OpenAI-compatible gateway (9router, `cx/gpt-6-luna`), `save_recipe` tool, scope + injection guardrails |
+| API | [`src/app/api/chat/route.ts`](../src/app/api/chat/route.ts) | SSE streaming, OpenAI-compatible gateway (9router, `cx/gpt-5.6-terra`), `save_recipe` tool, scope + injection guardrails |
 | Schema (strict) | `ChatRecipeSchema` inside the route | Source of truth for "is this complete?" |
 | Schema (loose) | `recipeJsonSchema` in the route, sent to the model | No `required` — model is encouraged to call with whatever it has |
 | Rate limit | [`src/lib/chat-rate-limit.ts`](../src/lib/chat-rate-limit.ts), migration `008_chat_usage.sql` | Per-IP daily cap (200), SQLite |
@@ -23,7 +23,7 @@ The route talks to any **OpenAI-compatible** endpoint (`openai` SDK, `/v1/chat/c
 ```
 LLM_BASE_URL=http://192.168.1.45:20128/v1   # 9router (LAN IP; reachable from the container)
 LLM_API_KEY=sk-...                          # a 9router API key named "Mealplan"
-LLM_MODEL=cx/gpt-6-luna                     # optional, this is the default
+LLM_MODEL=cx/gpt-5.6-terra                     # optional, this is the default
 ```
 
 Put them in `/mnt/user/appdata/mealplan/.env` on Unraid (compose reads it) or `.env.local` for dev, then `docker compose up -d`. The route returns `500 LLM_BASE_URL / LLM_API_KEY no configuradas` if either is missing.

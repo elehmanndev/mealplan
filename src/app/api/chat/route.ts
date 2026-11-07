@@ -12,8 +12,8 @@ import { extractFirstUrl, fetchRecipeUrl } from '@/lib/fetch-recipe-url';
 export const dynamic = 'force-dynamic';
 
 // OpenAI-compatible gateway (9router on the homelab). Model ids carry the
-// 9router provider prefix, e.g. `cx/gpt-6-luna`.
-const MODEL = process.env.LLM_MODEL || 'cx/gpt-6-luna';
+// 9router provider prefix, e.g. `cx/gpt-5.6-terra`.
+const MODEL = process.env.LLM_MODEL || 'cx/gpt-5.6-terra';
 const MAX_TOOL_ROUNDS = 2;
 const PER_STREAM_TIMEOUT_MS = 25000;
 
@@ -111,7 +111,7 @@ Si el usuario te corrige algo en un turno posterior, mantén el resto y aplica s
 const recipeJsonSchema = {
   type: 'object',
   description:
-    'Datos de una receta para guardar. Llama con TODO lo que el usuario haya proporcionado realmente. NO inventes ingredientes, cantidades, supermercados ni ningún otro dato — si falta, omítelo y la herramienta te lo pedirá.',
+    'Receta completa para el borrador. Tú rellenas todo lo que el usuario no diga: nombre normalizado, emoji, categoría, descripción, tiempo estimado e ingredientes con cantidad, unidad y supermercado. No preguntes por ingredientes ni cantidades.',
   properties: {
     name: { type: 'string', description: 'Nombre de la receta' },
     emoji: { type: 'string' },
@@ -124,7 +124,7 @@ const recipeJsonSchema = {
     ingredients: {
       type: 'array',
       description:
-        'Ingredientes de la receta. Si el usuario solo te dio el nombre, sugiere ingredientes razonables aquí (solo NOMBRES — no inventes cantidades ni supermercados). Marca con is_pantry=true los productos básicos de despensa (aceite, sal, pimienta, especias, vinagre, ajo en polvo, etc.).',
+        'Lista completa de ingredientes. Si el usuario solo dio el nombre del plato, propón los ingredientes habituales. Cada ingrediente que no sea de despensa lleva quantity, unit y supermarket estimados para las raciones indicadas. Marca con is_pantry=true los básicos de despensa (aceite, sal, pimienta, especias, vinagre, ajo en polvo…) y omite en ellos quantity/unit/supermarket.',
       items: {
         type: 'object',
         properties: {
@@ -149,7 +149,7 @@ const saveRecipeTool: ChatCompletionTool = {
   function: {
     name: 'save_recipe',
     description:
-      'Intenta guardar una receta en el recetario. Llama con TODOS los datos que tengas en cada turno, aunque estén incompletos. Si faltan campos o hay valores inválidos, la herramienta devuelve missing_fields/invalid_fields para que sepas qué pedirle al usuario.',
+      'Muestra al usuario un borrador de receta para revisar y guardar. Llama con la receta COMPLETA, incluidas las cantidades y supermercados que estimes tú. Si algo no valida, la herramienta devuelve missing_fields/invalid_fields: corrígelo tú y vuelve a llamar.',
     parameters: recipeJsonSchema as Record<string, unknown>,
   },
 };
